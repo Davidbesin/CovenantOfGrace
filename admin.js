@@ -129,22 +129,33 @@ async function renderPrayers() {
 ══════════════════════════════════════════ */
 let editingSermonId = null;
 let _sermonCache = [];
+let _sermonActiveCat = 'church';
+let _pendingAudioFile = null;
+
+function sermonCatLabel(cat) {
+  return cat === 'guest' ? 'Guest Speaker / Special Program' : 'Church (Main Sunday Service)';
+}
 
 async function renderSermons() {
   const el = document.getElementById('sermonList');
   el.innerHTML = '<div class="adm-empty"><i class="bi bi-arrow-clockwise"></i> Loading…</div>';
   const list = await DB.getSermons();
   _sermonCache = list;
-  if (!list.length) {
-    el.innerHTML = '<div class="adm-empty"><i class="bi bi-mic"></i>No sermons yet. Add one above.</div>';
+  const filtered = list.filter(s => (s.category || 'church') === _sermonActiveCat);
+
+  if (!filtered.length) {
+    el.innerHTML = `<div class="adm-empty"><i class="bi bi-mic"></i>No ${_sermonActiveCat === 'guest' ? 'guest speaker' : 'church'} sermons yet. Add one above.</div>`;
     return;
   }
-  el.innerHTML = list.map(s => `
+  el.innerHTML = filtered.map(s => `
     <div class="adm-item">
       <div class="adm-item-icon"><i class="bi bi-music-note-beamed" style="color:var(--gold)"></i></div>
       <div class="adm-item-body">
         <div class="adm-item-title">${s.title}</div>
         <div class="adm-item-sub">${s.speaker} · ${s.date}</div>
+        ${s.audioUrl
+          ? `<div class="adm-item-audio-badge"><i class="bi bi-check-circle-fill"></i> ${s.audioName || 'Audio attached'}</div>`
+          : `<div class="adm-item-audio-badge missing"><i class="bi bi-exclamation-circle-fill"></i> No audio uploaded</div>`}
       </div>
       <div class="adm-item-actions">
         <button class="adm-edit-btn" data-id="${s.id}" title="Edit"><i class="bi bi-pencil"></i></button>
@@ -158,9 +169,20 @@ async function renderSermons() {
       const s = _sermonCache.find(x => x.id === btn.dataset.id);
       if (!s) return;
       editingSermonId = s.id;
+      _pendingAudioFile = null;
+      document.getElementById('sf_category').value = s.category || 'church';
       document.getElementById('sf_title').value   = s.title;
       document.getElementById('sf_speaker').value = s.speaker;
       document.getElementById('sf_date').value    = s.date;
+      document.getElementById('sf_audio').value   = '';
+      const currentEl = document.getElementById('sf_audioCurrent');
+      if (s.audioUrl) {
+        currentEl.style.display = 'flex';
+        currentEl.innerHTML = `<i class="bi bi-music-note-beamed"></i> Current: ${s.audioName || 'audio file'} (choosing a new file will replace it)`;
+      } else {
+        currentEl.style.display = 'none';
+      }
+      document.getElementById('sf_uploadProgress').style.display = 'none';
       document.getElementById('sermonFormTitle').textContent = 'Edit Sermon';
       document.getElementById('sermonForm').style.display = 'block';
     });
@@ -169,7 +191,7 @@ async function renderSermons() {
   el.querySelectorAll('.adm-del-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
-      showConfirm('Delete sermon?', 'This will remove it from the Members portal.', async () => {
+      showConfirm('Delete sermon?', 'This will remove it (and its audio file) from the Members portal.', async () => {
         await DB.deleteSermon(id);
         renderSermons();
       });
@@ -177,9 +199,23 @@ async function renderSermons() {
   });
 }
 
+document.querySelectorAll('.adm-subtab-btn[data-cat]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.adm-subtab-btn[data-cat]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _sermonActiveCat = btn.dataset.cat;
+    renderSermons();
+  });
+});
+
 document.getElementById('addSermonBtn').addEventListener('click', () => {
   editingSermonId = null;
+  _pendingAudioFile = null;
   ['sf_title','sf_speaker','sf_date'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('sf_category').value = _sermonActiveCat;
+  document.getElementById('sf_audio').value = '';
+  document.getElementById('sf_audioCurrent').style.display = 'none';
+  document.getElementById('sf_uploadProgress').style.display = 'none';
   document.getElementById('sermonFormTitle').textContent = 'Add Sermon';
   document.getElementById('sermonForm').style.display = 'block';
 });
@@ -187,23 +223,58 @@ document.getElementById('addSermonBtn').addEventListener('click', () => {
 document.getElementById('sermonCancelBtn').addEventListener('click', () => {
   document.getElementById('sermonForm').style.display = 'none';
   editingSermonId = null;
+  _pendingAudioFile = null;
+});
+
+document.getElementById('sf_audio').addEventListener('change', e => {
+  _pendingAudioFile = e.target.files[0] || null;
 });
 
 document.getElementById('sermonSaveBtn').addEventListener('click', async () => {
   const data = {
-    title:   document.getElementById('sf_title').value.trim(),
-    speaker: document.getElementById('sf_speaker').value.trim(),
-    date:    document.getElementById('sf_date').value.trim(),
+    category: document.getElementById('sf_category').value,
+    title:    document.getElementById('sf_title').value.trim(),
+    speaker:  document.getElementById('sf_speaker').value.trim(),
+    date:     document.getElementById('sf_date').value.trim(),
   };
   if (!data.title || !data.speaker) return alert('Please fill in Title and Speaker.');
-  if (editingSermonId) {
-    await DB.updateSermon(editingSermonId, data);
-  } else {
-    await DB.addSermon(data);
+
+  const saveBtn = document.getElementById('sermonSaveBtn');
+  saveBtn.disabled = true;
+
+  try {
+    if (_pendingAudioFile) {
+      const progressWrap = document.getElementById('sf_uploadProgress');
+      const barFill = document.getElementById('sf_uploadBarFill');
+      const pctLabel = document.getElementById('sf_uploadPct');
+      progressWrap.style.display = 'flex';
+      barFill.style.width = '0%';
+      pctLabel.textContent = '0%';
+
+      const result = await DB.uploadSermonAudio(_pendingAudioFile, pct => {
+        barFill.style.width = pct + '%';
+        pctLabel.textContent = pct + '%';
+      });
+      data.audioUrl  = result.audioUrl;
+      data.audioPath = result.audioPath;
+      data.audioName = result.audioName;
+    }
+
+    if (editingSermonId) {
+      await DB.updateSermon(editingSermonId, data);
+    } else {
+      await DB.addSermon(data);
+    }
+    document.getElementById('sermonForm').style.display = 'none';
+    editingSermonId = null;
+    _pendingAudioFile = null;
+    renderSermons();
+  } catch (err) {
+    console.error(err);
+    alert('Something went wrong uploading the audio. Please check your connection and try again.');
+  } finally {
+    saveBtn.disabled = false;
   }
-  document.getElementById('sermonForm').style.display = 'none';
-  editingSermonId = null;
-  renderSermons();
 });
 
 /* ══════════════════════════════════════════
@@ -385,9 +456,181 @@ async function renderRegistrations() {
   });
 }
 
+/* ══════════════════════════════════════════
+   ATTENDANCE
+══════════════════════════════════════════ */
+let _rosterCache = [];
+
+function todayISO() {
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+}
+
+/* -- sub-tab switching within the Attendance panel -- */
+document.querySelectorAll('.adm-subtab-btn[data-att-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.adm-subtab-btn[data-att-tab]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.adm-att-view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('att-' + btn.dataset.attTab).classList.add('active');
+    if (btn.dataset.attTab === 'history') renderAttendanceHistory();
+    if (btn.dataset.attTab === 'roster') renderAttendanceRoster();
+    if (btn.dataset.attTab === 'checkin') renderAttendanceCheckin();
+  });
+});
+
+/* -- ROSTER -- */
+async function renderAttendanceRoster() {
+  const el = document.getElementById('attendanceRosterList');
+  el.innerHTML = '<div class="adm-empty"><i class="bi bi-arrow-clockwise"></i> Loading…</div>';
+  const members = await DB.getMembers();
+  _rosterCache = members;
+  if (!members.length) {
+    el.innerHTML = '<div class="adm-empty"><i class="bi bi-people"></i>No members added yet. Add names above.</div>';
+    return;
+  }
+  el.innerHTML = members.map(m => `
+    <div class="adm-item">
+      <div class="adm-item-icon"><i class="bi bi-person-fill" style="color:var(--gold)"></i></div>
+      <div class="adm-item-body"><div class="adm-item-title">${m.name}</div></div>
+      <div class="adm-item-actions">
+        <button class="adm-del-btn" data-id="${m.id}" title="Remove"><i class="bi bi-trash3"></i></button>
+      </div>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('.adm-del-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const m = members.find(x => x.id === btn.dataset.id);
+      showConfirm('Remove member?', `This deletes "${m ? m.name : ''}" from the roster. Their past attendance records will stay in history.`, async () => {
+        await DB.deleteMember(btn.dataset.id);
+        renderAttendanceRoster();
+      });
+    });
+  });
+}
+
+document.getElementById('att_addMemberBtn').addEventListener('click', async () => {
+  const input = document.getElementById('att_newMemberName');
+  const name = input.value.trim();
+  if (!name) return input.focus();
+  await DB.addMember(name);
+  input.value = '';
+  renderAttendanceRoster();
+});
+document.getElementById('att_newMemberName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('att_addMemberBtn').click();
+});
+
+/* -- CHECK-IN -- */
+const attDateInput = document.getElementById('att_date');
+attDateInput.value = todayISO();
+attDateInput.addEventListener('change', renderAttendanceCheckin);
+
+async function renderAttendanceCheckin() {
+  const el = document.getElementById('attendanceCheckinList');
+  const summaryEl = document.getElementById('att_checkinSummary');
+  el.innerHTML = '<div class="adm-empty"><i class="bi bi-arrow-clockwise"></i> Loading…</div>';
+  summaryEl.textContent = '';
+
+  const date = attDateInput.value || todayISO();
+  const [members, checkedIn] = await Promise.all([
+    DB.getMembers(),
+    DB.getAttendanceForDate(date),
+  ]);
+  _rosterCache = members;
+
+  if (!members.length) {
+    el.innerHTML = '<div class="adm-empty"><i class="bi bi-people"></i>No members in the roster yet. Add names under the "Members" tab first.</div>';
+    return;
+  }
+
+  const presentCount = Object.keys(checkedIn).length;
+  summaryEl.textContent = `${presentCount} of ${members.length} present`;
+
+  el.innerHTML = members.map(m => `
+    <div class="adm-item">
+      <div class="adm-item-icon"><i class="bi bi-person-fill" style="color:var(--gold)"></i></div>
+      <div class="adm-item-body"><div class="adm-item-title">${m.name}</div></div>
+      <div class="adm-item-actions">
+        <button class="adm-checkin-toggle ${checkedIn[m.id] ? 'present' : ''}" data-id="${m.id}">
+          ${checkedIn[m.id] ? '✓ Present' : 'Mark Present'}
+        </button>
+      </div>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('.adm-checkin-toggle').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const nowPresent = !btn.classList.contains('present');
+      btn.disabled = true;
+      await DB.setCheckedIn(date, id, nowPresent);
+      btn.disabled = false;
+      renderAttendanceCheckin();
+    });
+  });
+}
+
+/* -- HISTORY -- */
+async function renderAttendanceHistory() {
+  const el = document.getElementById('attendanceHistoryList');
+  el.innerHTML = '<div class="adm-empty"><i class="bi bi-arrow-clockwise"></i> Loading…</div>';
+
+  const [members, allAttendance] = await Promise.all([
+    DB.getMembers(),
+    DB.getAllAttendance(),
+  ]);
+
+  const dates = Object.keys(allAttendance).sort();
+  const totalSessions = dates.length;
+
+  if (!members.length) {
+    el.innerHTML = '<div class="adm-empty"><i class="bi bi-people"></i>No members in the roster yet.</div>';
+    return;
+  }
+  if (!totalSessions) {
+    el.innerHTML = '<div class="adm-empty"><i class="bi bi-clipboard2-check"></i>No attendance has been recorded yet. Use the "Check-In" tab on a Sunday to start tracking.</div>';
+    return;
+  }
+
+  const rows = members.map(m => {
+    const timesPresent = dates.filter(d => allAttendance[d][m.id]).length;
+    const pct = Math.round((timesPresent / totalSessions) * 100);
+    return { name: m.name, timesPresent, pct };
+  }).sort((a, b) => b.pct - a.pct);
+
+  el.innerHTML = `
+    <div style="overflow-x:auto">
+      <table class="adm-history-table">
+        <thead>
+          <tr><th>Name</th><th>Sundays Present</th><th>Attendance</th></tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td>${r.name}</td>
+              <td>${r.timesPresent} / ${totalSessions}</td>
+              <td>
+                <div class="adm-history-bar-wrap">
+                  <div class="adm-history-bar"><div class="adm-history-bar-fill" style="width:${r.pct}%"></div></div>
+                  <span class="adm-history-pct">${r.pct}%</span>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:12px;color:#6b7280;margin-top:14px">Based on ${totalSessions} recorded Sunday${totalSessions === 1 ? '' : 's'}.</p>
+  `;
+}
+
 /* ── INIT ── */
 renderPrayers();
 renderSermons();
 renderAnnouncements();
 renderHomeCards();
 renderRegistrations();
+renderAttendanceCheckin();

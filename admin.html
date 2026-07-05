@@ -66,6 +66,7 @@
     <button class="adm-nav-btn" data-panel="announcements"><i class="bi bi-megaphone"></i> Announcements</button>
     <button class="adm-nav-btn" data-panel="homecards"><i class="bi bi-house-door"></i> Home Cards</button>
     <button class="adm-nav-btn" data-panel="registrations"><i class="bi bi-person-lines-fill"></i> Worker Applications</button>
+    <button class="adm-nav-btn" data-panel="attendance"><i class="bi bi-clipboard2-check"></i> Attendance</button>
   </nav>
 
   <div class="adm-sidebar-foot">
@@ -90,6 +91,7 @@
     <button class="adm-nav-btn" data-panel="announcements"><i class="bi bi-megaphone"></i> Announcements</button>
     <button class="adm-nav-btn" data-panel="homecards"><i class="bi bi-house-door"></i> Home Cards</button>
     <button class="adm-nav-btn" data-panel="registrations"><i class="bi bi-person-lines-fill"></i> Worker Applications</button>
+    <button class="adm-nav-btn" data-panel="attendance"><i class="bi bi-clipboard2-check"></i> Attendance</button>
   </div>
 
   <!-- PANEL: PRAYERS -->
@@ -113,13 +115,35 @@
       <button class="adm-add-btn" id="addSermonBtn"><i class="bi bi-plus-lg"></i> Add Sermon</button>
     </div>
 
+    <!-- Category tabs -->
+    <div class="adm-subtabs">
+      <button class="adm-subtab-btn active" data-cat="church">Church Sermons</button>
+      <button class="adm-subtab-btn" data-cat="guest">Guest Speakers / Special Programs</button>
+    </div>
+
     <!-- Sermon form -->
     <div class="adm-form-card" id="sermonForm" style="display:none">
       <h3 id="sermonFormTitle">Add Sermon</h3>
       <div class="adm-fields">
+        <div class="adm-field">
+          <label>Category</label>
+          <select id="sf_category">
+            <option value="church">Church (Main Sunday Service)</option>
+            <option value="guest">Guest Speaker / Special Program</option>
+          </select>
+        </div>
         <div class="adm-field"><label>Title</label><input type="text" id="sf_title" placeholder="e.g. Walking in Divine Purpose"></div>
         <div class="adm-field"><label>Speaker</label><input type="text" id="sf_speaker" placeholder="e.g. Pastor Emmanuel Adeyemi"></div>
         <div class="adm-field"><label>Date</label><input type="text" id="sf_date" placeholder="e.g. 1 June 2025"></div>
+        <div class="adm-field adm-field-full">
+          <label>Audio File</label>
+          <input type="file" id="sf_audio" accept="audio/*">
+          <div id="sf_audioCurrent" class="adm-audio-current" style="display:none"></div>
+          <div id="sf_uploadProgress" class="adm-upload-progress" style="display:none">
+            <div class="adm-upload-bar"><div id="sf_uploadBarFill" class="adm-upload-bar-fill"></div></div>
+            <span id="sf_uploadPct">0%</span>
+          </div>
+        </div>
       </div>
       <div class="adm-form-actions">
         <button class="adm-cancel-btn" id="sermonCancelBtn">Cancel</button>
@@ -170,6 +194,53 @@
     <div id="homeCardList" class="adm-list"></div>
   </div>
 
+  <!-- PANEL: ATTENDANCE -->
+  <div class="adm-panel" id="panel-attendance">
+    <div class="adm-panel-header">
+      <div>
+        <h1>Attendance</h1>
+        <p>Manage the church roster and check members in each Sunday.</p>
+      </div>
+    </div>
+
+    <div class="adm-subtabs">
+      <button class="adm-subtab-btn active" data-att-tab="checkin">Check-In</button>
+      <button class="adm-subtab-btn" data-att-tab="roster">Members</button>
+      <button class="adm-subtab-btn" data-att-tab="history">History</button>
+    </div>
+
+    <!-- CHECK-IN -->
+    <div class="adm-att-view active" id="att-checkin">
+      <div class="adm-att-toolbar">
+        <div class="adm-field" style="max-width:220px">
+          <label>Service Date</label>
+          <input type="date" id="att_date">
+        </div>
+        <div class="adm-att-summary" id="att_checkinSummary"></div>
+      </div>
+      <div id="attendanceCheckinList" class="adm-list"></div>
+    </div>
+
+    <!-- ROSTER -->
+    <div class="adm-att-view" id="att-roster">
+      <div class="adm-att-toolbar">
+        <div class="adm-field" style="flex:1">
+          <label>Add Member</label>
+          <div style="display:flex; gap:10px">
+            <input type="text" id="att_newMemberName" placeholder="Full name">
+            <button class="adm-add-btn" id="att_addMemberBtn" style="white-space:nowrap"><i class="bi bi-plus-lg"></i> Add</button>
+          </div>
+        </div>
+      </div>
+      <div id="attendanceRosterList" class="adm-list"></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="adm-att-view" id="att-history">
+      <div id="attendanceHistoryList" class="adm-list"></div>
+    </div>
+  </div>
+
   <!-- PANEL: REGISTRATIONS -->
   <div class="adm-panel" id="panel-registrations">
     <div class="adm-panel-header">
@@ -199,6 +270,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script src="shared.js"></script>
 <script src="admin.js"></script>
 </body>

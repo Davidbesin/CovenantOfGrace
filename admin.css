@@ -160,6 +160,7 @@ body {
 .adm-field-full { grid-column: 1 / -1; }
 .adm-field label { font-size: 12px; font-weight: 600; color: #374151; }
 .adm-field input,
+.adm-field select,
 .adm-field textarea {
   padding: 10px 13px;
   border: 1.5px solid #e5e7eb; border-radius: 10px;
@@ -169,11 +170,13 @@ body {
   transition: border-color .2s, box-shadow .2s;
 }
 .adm-field input:focus,
+.adm-field select:focus,
 .adm-field textarea:focus {
   border-color: var(--gold);
   box-shadow: 0 0 0 3px var(--gold-glow);
   background: #fff;
 }
+.adm-field input[type="file"] { padding: 8px 10px; cursor: pointer; }
 .adm-form-actions { display: flex; gap: 10px; justify-content: flex-end; }
 .adm-cancel-btn {
   padding: 9px 18px; border: 1.5px solid #e5e7eb;
@@ -502,3 +505,78 @@ body {
   background: rgba(255,107,107,0.15);
   color: #ff9898;
 }
+
+/* ── SUB-TABS (used by Sermons categories & Attendance views) ── */
+.adm-subtabs {
+  display: flex; gap: 8px; margin-bottom: 20px;
+  border-bottom: 1.5px solid #e5e7eb; padding-bottom: 0;
+  flex-wrap: wrap;
+}
+.adm-subtab-btn {
+  padding: 10px 16px; border: none; background: none;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+  color: #6b7280; cursor: pointer; border-bottom: 2.5px solid transparent;
+  margin-bottom: -1.5px; transition: color .2s, border-color .2s;
+}
+.adm-subtab-btn:hover { color: #374151; }
+.adm-subtab-btn.active { color: var(--navy); border-bottom-color: var(--gold); }
+
+/* ── AUDIO UPLOAD (Sermons) ── */
+.adm-audio-current {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; color: #374151; background: #f9fafb;
+  border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 12px;
+}
+.adm-audio-current i { color: var(--gold); }
+.adm-upload-progress { display: flex; align-items: center; gap: 10px; }
+.adm-upload-bar {
+  flex: 1; height: 8px; background: #e5e7eb; border-radius: 999px; overflow: hidden;
+}
+.adm-upload-bar-fill {
+  height: 100%; width: 0%; background: var(--gold);
+  transition: width .2s;
+}
+.adm-upload-progress span { font-size: 12px; font-weight: 600; color: #6b7280; min-width: 34px; }
+.adm-item-audio-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--gold); background: var(--gold-glow);
+  padding: 3px 9px; border-radius: 999px; margin-top: 6px;
+}
+.adm-item-audio-badge.missing { color: #ef4444; background: #fef2f2; }
+
+/* ── ATTENDANCE ── */
+.adm-att-view { display: none; }
+.adm-att-view.active { display: block; }
+.adm-att-toolbar {
+  display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.adm-att-summary {
+  font-size: 13px; font-weight: 600; color: var(--navy);
+  background: var(--gold-glow); padding: 9px 16px; border-radius: 10px;
+}
+.adm-checkin-toggle {
+  padding: 8px 16px; border-radius: 999px; border: 1.5px solid #e5e7eb;
+  background: #fff; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600;
+  color: #6b7280; cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.adm-checkin-toggle:hover { border-color: #9ca3af; }
+.adm-checkin-toggle.present {
+  background: #dcfce7; border-color: #86efac; color: #166534;
+}
+.adm-history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.adm-history-table th {
+  text-align: left; font-size: 11.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; color: #6b7280; padding: 10px 14px; border-bottom: 2px solid #e5e7eb;
+}
+.adm-history-table td {
+  padding: 12px 14px; border-bottom: 1px solid #f1f2f4; color: #111827;
+}
+.adm-history-pct { font-weight: 700; }
+.adm-history-bar-wrap {
+  display: flex; align-items: center; gap: 10px;
+}
+.adm-history-bar {
+  width: 90px; height: 7px; background: #e5e7eb; border-radius: 999px; overflow: hidden;
+}
+.adm-history-bar-fill { height: 100%; background: var(--gold); }

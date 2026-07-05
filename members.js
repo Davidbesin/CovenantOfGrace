@@ -65,33 +65,75 @@ async function renderAnnouncements() {
 }
 
 /* ── SERMONS ── */
+let _allSermonsCache = [];
+let _sermonCatFilter = 'church';
+const sermonAudioEl = document.getElementById('sermonAudioPlayer');
+
+function resetPlayButtons() {
+  document.querySelectorAll('.play-btn i').forEach(i => i.className = 'bi bi-play-fill');
+  document.querySelectorAll('.play-btn').forEach(b => { b.style.background = ''; b.style.color = 'var(--gold)'; });
+}
+
 async function renderSermons() {
   const container = document.getElementById('sermonsContainer');
   if (!container) return;
   const list = await DB.getSermons();
-  if (!list.length) { container.innerHTML = '<p class="text-muted small">No sermons yet.</p>'; return; }
-  container.innerHTML = list.map(s => `
+  _allSermonsCache = list;
+  const filtered = list.filter(s => (s.category || 'church') === _sermonCatFilter);
+
+  if (!filtered.length) {
+    container.innerHTML = `<p class="text-muted small">No ${_sermonCatFilter === 'guest' ? 'guest speaker' : 'church'} sermons yet.</p>`;
+    return;
+  }
+  container.innerHTML = filtered.map(s => `
     <div class="sermon-card d-flex align-items-center gap-3 p-3" data-sermon-id="${s.id}">
       <div class="sermon-icon d-flex align-items-center justify-content-center flex-shrink-0"><i class="bi bi-music-note-beamed"></i></div>
       <div class="flex-grow-1">
         <h6 class="mb-1">${s.title}</h6>
         <p class="spkr mb-0">${s.speaker} &nbsp;·&nbsp; <span style="color:var(--gold)">${s.date}</span></p>
       </div>
-      <button class="play-btn d-flex align-items-center justify-content-center"><i class="bi bi-play-fill"></i></button>
+      <button class="play-btn d-flex align-items-center justify-content-center" data-audio-url="${s.audioUrl || ''}" ${s.audioUrl ? '' : 'disabled title="Audio not available yet"'}>
+        <i class="bi bi-play-fill"></i>
+      </button>
     </div>
   `).join('');
+
   document.querySelectorAll('.play-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const playing = btn.querySelector('i').classList.contains('bi-pause-fill');
-      document.querySelectorAll('.play-btn i').forEach(i => i.className = 'bi bi-play-fill');
-      document.querySelectorAll('.play-btn').forEach(b => { b.style.background = ''; b.style.color = 'var(--gold)'; });
-      if (!playing) {
-        btn.querySelector('i').className = 'bi bi-pause-fill';
-        btn.style.background = 'var(--gold)'; btn.style.color = '#fff';
+      const url = btn.dataset.audioUrl;
+      if (!url) return;
+      const isThisPlaying = btn.querySelector('i').classList.contains('bi-pause-fill');
+
+      if (isThisPlaying) {
+        sermonAudioEl.pause();
+        resetPlayButtons();
+        return;
       }
+
+      resetPlayButtons();
+      if (sermonAudioEl.src !== url) {
+        sermonAudioEl.src = url;
+      }
+      sermonAudioEl.play();
+      btn.querySelector('i').className = 'bi bi-pause-fill';
+      btn.style.background = 'var(--gold)'; btn.style.color = '#fff';
     });
   });
 }
+
+if (sermonAudioEl) {
+  sermonAudioEl.addEventListener('ended', resetPlayButtons);
+}
+
+document.querySelectorAll('.sermon-cat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sermon-cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _sermonCatFilter = btn.dataset.sermonCat;
+    sermonAudioEl.pause();
+    renderSermons();
+  });
+});
 
 /* ── PRAYERS ── */
 async function renderPrayers() {

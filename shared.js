@@ -16,6 +16,7 @@ const firebaseConfig = {
 
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const _db = firebase.firestore();
+const _storage = firebase.storage();
 
 /* ── helpers ── */
 const col = name => _db.collection(name);
@@ -68,9 +69,9 @@ const DB = {
     const snap = await col('sermons').orderBy('createdAt', 'desc').get();
     if (!snap.empty) return snap.docs.map(docData);
     return [
-      { id: 'seed1', title: 'Walking in Divine Purpose',       speaker: 'Pastor Emmanuel Adeyemi', date: '1 June 2025' },
-      { id: 'seed2', title: 'The Power of a Surrendered Life', speaker: 'Pastor Grace Okonkwo',    date: '25 May 2025' },
-      { id: 'seed3', title: 'Faith That Moves Mountains',      speaker: 'Pastor Emmanuel Adeyemi', date: '18 May 2025' },
+      { id: 'seed1', title: 'Walking in Divine Purpose',       speaker: 'Pastor Emmanuel Adeyemi', date: '1 June 2025', category: 'church' },
+      { id: 'seed2', title: 'The Power of a Surrendered Life', speaker: 'Pastor Grace Okonkwo',    date: '25 May 2025', category: 'church' },
+      { id: 'seed3', title: 'Faith That Moves Mountains',      speaker: 'Pastor Emmanuel Adeyemi', date: '18 May 2025', category: 'church' },
     ];
   },
 
@@ -85,8 +86,36 @@ const DB = {
   },
 
   async deleteSermon(id) {
+    // Best-effort: also remove the audio file from Storage if this sermon had one.
+    try {
+      const doc = await col('sermons').doc(id).get();
+      const data = doc.data();
+      if (data && data.audioPath) {
+        await _storage.ref(data.audioPath).delete();
+      }
+    } catch (e) { /* file may already be gone — ignore */ }
     await col('sermons').doc(id).delete();
     return this.getSermons();
+  },
+
+  /* Uploads a sermon audio file to Firebase Storage and returns { audioUrl, audioPath, audioName }.
+     Call this BEFORE addSermon/updateSermon, then merge the result into the sermon data. */
+  async uploadSermonAudio(file, onProgress) {
+    const path = `sermons/${Date.now()}_${file.name}`;
+    const ref = _storage.ref(path);
+    const task = ref.put(file);
+    return new Promise((resolve, reject) => {
+      task.on('state_changed',
+        snap => {
+          if (onProgress) onProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100));
+        },
+        err => reject(err),
+        async () => {
+          const audioUrl = await task.snapshot.ref.getDownloadURL();
+          resolve({ audioUrl, audioPath: path, audioName: file.name });
+        }
+      );
+    });
   },
 
   /* ══════════════════════════════════════════
@@ -161,5 +190,57 @@ const DB = {
   async deleteRegistration(id) {
     await col('registrations').doc(id).delete();
     return this.getRegistrations();
+  },
+
+  /* ══════════════════════════════════════════
+     CONGREGATION ATTENDANCE
+  ══════════════════════════════════════════ */
+
+  /* -- Roster -- */
+  async getMembers() {
+    const snap = await col('congregationMembers').orderBy('name').get();
+    return snap.docs.map(docData);
+  },
+
+  async addMember(name) {
+    await col('congregationMembers').add({
+      name: name.trim(),
+      dateAdded: firebase.firestore.FieldValue.serverTimestamp(),
+      active: true,
+    });
+    return this.getMembers();
+  },
+
+  async deleteMember(id) {
+    await col('congregationMembers').doc(id).delete();
+    return this.getMembers();
+  },
+
+  /* -- Check-in for a given date (date = 'YYYY-MM-DD' string) -- */
+  async getAttendanceForDate(date) {
+    const doc = await col('attendance').doc(date).get();
+    return doc.exists ? doc.data().checkedIn || {} : {};
+  },
+
+  async setCheckedIn(date, memberId, present) {
+    const ref = col('attendance').doc(date);
+    if (present) {
+      await ref.set({
+        checkedIn: { [memberId]: firebase.firestore.FieldValue.serverTimestamp() }
+      }, { merge: true });
+    } else {
+      await ref.set({
+        checkedIn: { [memberId]: firebase.firestore.FieldValue.delete() }
+      }, { merge: true });
+    }
+  },
+
+  /* -- All attendance records, for history / percentage calculations -- */
+  async getAllAttendance() {
+    const snap = await col('attendance').get();
+    // { date: { memberId: true, ... }, ... }
+    const out = {};
+    snap.docs.forEach(d => { out[d.id] = d.data().checkedIn || {}; });
+    return out;
   },
 };
