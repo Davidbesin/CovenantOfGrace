@@ -7,34 +7,33 @@ const departments = [
     shortDesc: "Leading the congregation into worship.",
     about: "The Choir Department leads the church in heartfelt worship through songs, hymns, and special ministrations. We believe music is a powerful vehicle for God's presence, and every member plays a vital role in creating an atmosphere where lives are transformed.",
     meetings: [
-      { day: "Saturday",   time: "4-7 PM", label: "Practice" }
+      { day: "Saturday",   time: "5.30pm-7 PM", label: "Practice" }
     ],
     requirements: ["A love for worship and music", "Commitment to weekly rehearsals", "Willingness to serve"],
-    leader: "Bro. Samuel Adeyemi", whatsapp: "2348012345678", phone: "2348012345678"
+    leader: "Sis. Aanu", whatsapp: "2348012345678", phone: "2348012345678"
   },
   {
-    icon: "🚪", name: "Ushering Department", members: 5,
-    schedule: "Saturdays · 9:00 AM",
+    icon: "🚪", name: "Ushering Department", members: 7,
+    schedule: "Sundays · 6:00 PM",
     shortDesc: "Creating a warm and welcoming atmosphere.",
     about: "The Ushering Department is the first point of contact for every worshipper and guest. We assist with seating, maintain order, distribute materials, and ensure that everyone feels genuinely welcomed and cared for.",
     meetings: [
-      { day: "Saturday", time: "9:00 AM", label: "Training & briefing" },
-      { day: "Sunday",   time: "7:30 AM", label: "Pre-service setup" }
+      { day: "Sunday", time: "6:00 PM", label: "Briefing" },
+
     ],
     requirements: ["Warm, hospitable personality", "Punctuality and reliability", "Smart appearance on Sundays"],
-    leader: "Sis. Grace Johnson", whatsapp: "2348098765432", phone: "2348098765432"
+    leader: "Sis. Grace Johnson", whatsapp: "2348166410535", phone: "2348166410535"
   },
   {
-    icon: "🌟", name: "Children's Church", members: 5,
+    icon: "🌟", name: "Children's Church", members: 6,
     schedule: "Sundays · During Service",
     shortDesc: "Nurturing children in faith.",
     about: "Children's Church provides a safe, engaging, and age-appropriate worship experience for children aged 3–12 during the main Sunday service, using creative storytelling, music, and interactive lessons.",
     meetings: [
-      { day: "Sunday",    time: "8:30 AM", label: "Teachers' preparation" },
-      { day: "Wednesday", time: "5:00 PM", label: "Curriculum planning" }
+      { day: "Online At leaders discretion",    time: "Online At leaders Discretion", label: "Teachers' preparation" }
     ],
     requirements: ["Passion for children's ministry", "DBS / background clearance", "Patience and creativity"],
-    leader: "Sis. Esther Balogun", whatsapp: "2348061234567", phone: "2348061234567"
+    leader: "Sis. Esther Balogun", whatsapp: "2348066091737", phone: "2348066091737"
   },
   {
     icon: "💻", name: "Technical Department", members: 6,
@@ -42,10 +41,10 @@ const departments = [
     shortDesc: "Supporting worship through technology.",
     about: "The Technical Department keeps everything running seamlessly. From live sound and projection to livestreaming and recording, our team serves with skill so the congregation can focus entirely on worship.",
     meetings: [
-      { day: "Sunday",    time: "7:45 AM", label: "Equipment setup" }
+      { day: " At leaders discretion",    time: " At leaders discretion", label: "At leaders discretion" }
     ],
     requirements: ["Basic tech or AV interest", "Willingness to learn", "Reliability on Sundays"],
-    leader: "Bro. Michael Ogunleye", whatsapp: "2348059876543", phone: "2348059876543"
+    leader: "Bro. Michael Ogunleye", whatsapp: "2348093527150", phone: "2348164123021"
   },
   {
     icon: "🙏", name: "Prayer Department", members: 4,
@@ -57,19 +56,18 @@ const departments = [
       { day: "Friday", time: "10:00 PM", label: "Night vigil (monthly)" }
     ],
     requirements: ["Consistent prayer life", "Commitment to early mornings", "Intercession heart"],
-    leader: "Sis. Ruth Adekunle", whatsapp: "2348021112233", phone: "2348021112233"
+    leader: "Sis. Ruth Adekunle", whatsapp: "2347066163224", phone: "2347066163224"
   },
   {
-    icon: "📢", name: "Evangelism Department", members: 7,
+    icon: "📢", name: "Evangelism Department", members: 4,
     schedule: "Saturdays · 10:00 AM",
     shortDesc: "Taking the Gospel beyond the church walls.",
     about: "The Evangelism Department organises street outreaches, door-to-door evangelism, campus missions, and community events to reach people who have never heard the Good News.",
     meetings: [
-      { day: "Saturday", time: "10:00 AM", label: "Outreach debrief & prep" },
-      { day: "Tuesday",  time: "7:00 PM",  label: "Soul-winners' training" }
+      { day: "Sunday", time: "7.40 AM", label: "Outreach debrief & prep" }
     ],
     requirements: ["Boldness and compassion", "Willingness to go out", "Basic evangelism training (provided)"],
-    leader: "Bro. Philip Akinyemi", whatsapp: "2348112233445", phone: "2348112233445"
+    leader: "Bro. Philip Akinyemi", whatsapp: "2347057131898", phone: "2347057131898"
   },
 ];
 
