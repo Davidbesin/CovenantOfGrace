@@ -21,7 +21,7 @@ body {
 
 /* ─── HERO ── */
 .landing-hero {
-  background: linear-gradient(165deg, var(--navy) 0%, var(--navy-2) 60%, #091838 100%);
+  background: linear-gradient(165deg, #14337a 0%, #0d2a66 55%, #0b1f4b 100%);
   padding: 56px 24px 64px;
   text-align: center;
   position: relative;
@@ -37,29 +37,22 @@ body {
 
 .hero-inner { position: relative; z-index: 1; }
 
-.church-mark {
-  font-size: 2.5rem;
-  color: var(--gold-light);
-  margin-bottom: 14px;
+.hero-logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(244,246,251,.96);
+  border: 1px solid rgba(255,255,255,.4);
+  border-radius: 20px;
+  padding: 18px 28px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.28);
+}
+
+.hero-logo {
+  max-width: 260px;
+  width: 100%;
+  height: auto;
   display: block;
-  filter: drop-shadow(0 0 18px rgba(245,166,35,.4));
-}
-
-.landing-hero h1 {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(2rem, 6vw, 3rem);
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.15;
-  margin-bottom: 10px;
-}
-
-.church-sub {
-  font-size: 13px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,.5);
-  font-weight: 500;
 }
 
 /* ─── PORTALS ── */
@@ -196,6 +189,8 @@ body {
 /* ─── RESPONSIVE ── */
 @media (max-width: 480px) {
   .landing-hero { padding: 44px 20px 52px; }
+  .hero-logo-wrap { padding: 14px 20px; border-radius: 16px; }
+  .hero-logo    { max-width: 190px; }
   .portal-card  { padding: 20px 18px; gap: 14px; }
   .portal-icon  { width: 52px; height: 52px; font-size: 1.8rem; border-radius: 14px; }
   .portal-body h2 { font-size: 1.05rem; }
