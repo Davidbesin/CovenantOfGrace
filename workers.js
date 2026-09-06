@@ -22,7 +22,7 @@ const departments = [
 
     ],
     requirements: ["Warm, hospitable personality", "Punctuality and reliability", "Smart appearance on Sundays"],
-    leader: "Sis. Grace Johnson", whatsapp: "2348166410535", phone: "2348166410535"
+    leader: "Bro Taiwo", whatsapp: "2348166410535", phone: "2348166410535"
   },
   {
     icon: "🌟", name: "Children's Church", members: 6,
@@ -33,7 +33,7 @@ const departments = [
       { day: "Online At leaders discretion",    time: "Online At leaders Discretion", label: "Teachers' preparation" }
     ],
     requirements: ["Passion for children's ministry", "DBS / background clearance", "Patience and creativity"],
-    leader: "Sis. Esther Balogun", whatsapp: "2348066091737", phone: "2348066091737"
+    leader: "Pst Teco", whatsapp: "2348066091737", phone: "2348066091737"
   },
   {
     icon: "💻", name: "Technical Department", members: 6,
@@ -44,7 +44,7 @@ const departments = [
       { day: " At leaders discretion",    time: " At leaders discretion", label: "At leaders discretion" }
     ],
     requirements: ["Basic tech or AV interest", "Willingness to learn", "Reliability on Sundays"],
-    leader: "Bro. Michael Ogunleye", whatsapp: "2348093527150", phone: "2348164123021"
+    leader: "", whatsapp: "2348093527150", phone: "2348164123021"
   },
   {
     icon: "🙏", name: "Prayer Department", members: 4,
@@ -56,7 +56,7 @@ const departments = [
       { day: "Friday", time: "10:00 PM", label: "Night vigil (monthly)" }
     ],
     requirements: ["Consistent prayer life", "Commitment to early mornings", "Intercession heart"],
-    leader: "Sis. Ruth Adekunle", whatsapp: "2347066163224", phone: "2347066163224"
+    leader: "", whatsapp: "2347066163224", phone: "2347066163224"
   },
   {
     icon: "📢", name: "Evangelism Department", members: 4,
@@ -67,7 +67,7 @@ const departments = [
       { day: "Sunday", time: "7.40 AM", label: "Outreach debrief & prep" }
     ],
     requirements: ["Boldness and compassion", "Willingness to go out", "Basic evangelism training (provided)"],
-    leader: "Bro. Philip Akinyemi", whatsapp: "2347057131898", phone: "2347057131898"
+    leader: "Pst Adebesin Adekunle", whatsapp: "2347057131898", phone: "2347057131898"
   },
 ];
 
