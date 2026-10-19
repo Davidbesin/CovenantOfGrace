@@ -15,8 +15,8 @@ const firebaseConfig = {
 };
 
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const _db = firebase.firestore();
-const _storage = firebase.storage();
+const _db = firebase.firestore();   
+const _storage = firebase.storage ? firebase.storage() : null;
 
 /* ── helpers ── */
 const col = name => _db.collection(name);
