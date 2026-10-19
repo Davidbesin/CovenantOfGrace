@@ -1,5 +1,7 @@
 /* admin.js */
 
+const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 /* ── AUTH ── */
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'grace2024';
@@ -104,8 +106,8 @@ async function renderPrayers() {
     <div class="adm-item">
       <div class="adm-item-icon">🙏</div>
       <div class="adm-item-body">
-        <div class="adm-item-sub">Anonymous · ${p.time} · ${p.prayCount || 0} praying</div>
-        <div class="adm-item-text">${p.text}</div>
+        <div class="adm-item-sub">Anonymous · ${escHtml(p.time)}</div>
+        <div class="adm-item-text">${escHtml(p.text)}</div>
       </div>
       <div class="adm-item-actions">
         <button class="adm-del-btn" data-id="${p.id}" title="Remove"><i class="bi bi-trash3"></i></button>
@@ -659,7 +661,6 @@ async function renderAttendanceHistory() {
 let editingDeptId = null;
 let _deptCache = [];
 
-const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* "08012345678" -> "2348012345678"; strips spaces, +, dashes */
 function normalizePhone(v) {

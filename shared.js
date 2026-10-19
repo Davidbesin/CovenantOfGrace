@@ -21,6 +21,18 @@ const _storage = firebase.storage();
 /* ── helpers ── */
 const col = name => _db.collection(name);
 const docData = d => ({ id: d.id, ...d.data() });
+const PRAYER_LIMIT = 100;
+
+function timeAgo(date) {
+  const sec = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
+  if (sec < 60)    return 'Just now';
+  if (sec < 3600)  return Math.floor(sec / 60) + ' min ago';
+  if (sec < 86400) { const h = Math.floor(sec / 3600); return h + (h === 1 ? ' hour ago' : ' hours ago'); }
+  const d = Math.floor(sec / 86400);
+  if (d === 1) return 'Yesterday';
+  if (d < 30)  return d + ' days ago';
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 /* ── Default departments (used until the admin edits them; seeded into Firestore on first admin visit) ── */
 const DEFAULT_DEPARTMENTS = [
@@ -88,27 +100,40 @@ const DB = {
   /* ══════════════════════════════════════════
      PRAYERS
   ══════════════════════════════════════════ */
+  /* Latest PRAYER_LIMIT prayers, newest first. Real data only (no placeholder prayers). */
   async getPrayers() {
-    const snap = await col('prayers').orderBy('createdAt', 'desc').get();
-    if (!snap.empty) return snap.docs.map(docData);
-    return [
-      { id: 'seed1', text: "Please pray for my mother's full recovery from surgery.", time: '2 hours ago', initial: 'A', color: '#0b1f4b', prayCount: 0 },
-      { id: 'seed2', text: "Seeking God's guidance over a major career decision.", time: '5 hours ago', initial: 'A', color: '#166534', prayCount: 0 },
-      { id: 'seed3', text: "Praying for my family's peace and unity.", time: 'Yesterday', initial: 'A', color: '#7c2d12', prayCount: 0 },
-    ];
+    const snap = await col('prayers').orderBy('createdAt', 'desc').limit(PRAYER_LIMIT).get();
+    return snap.docs.map(d => {
+      const p = docData(d);
+      const ts = p.createdAt && p.createdAt.toDate ? p.createdAt.toDate() : null;
+      p.time = ts ? timeAgo(ts) : 'Just now';
+      return p;
+    });
   },
 
   async addPrayer(text) {
     const colors = ['#0b1f4b','#166534','#7c2d12','#0d2a66','#1a3a7a','#14532d'];
     await col('prayers').add({
       text,
-      time: 'Just now',
       initial: 'A',
       color: colors[Math.floor(Math.random() * colors.length)],
       prayCount: 0,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
+    await this.trimPrayers();
     return this.getPrayers();
+  },
+
+  /* Keep only the newest PRAYER_LIMIT prayers in the database; delete the older ones. */
+  async trimPrayers() {
+    try {
+      const snap = await col('prayers').orderBy('createdAt', 'desc').get();
+      const extra = snap.docs.slice(PRAYER_LIMIT);
+      if (!extra.length) return;
+      const batch = _db.batch();
+      extra.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    } catch (e) { console.warn('Could not trim old prayers', e); }
   },
 
   async deletePrayer(id) {
@@ -211,13 +236,15 @@ const DB = {
      HOME CARDS
   ══════════════════════════════════════════ */
   async getHomeCards() {
-    const snap = await col('homeCards').get();
-    if (!snap.empty) return snap.docs.map(docData);
-    return [
+    const defaults = [
       { id: 'prayer',  emoji: '🙏', label: 'Daily Prayer', content: 'Lord, guide my steps today. Grant me wisdom, peace, and faith. Amen.' },
       { id: 'bible',   emoji: '📖', label: 'Bible Plan',   content: "Today's reading: Romans 8:1–17 — Life in the Spirit." },
       { id: 'worship', emoji: '🎵', label: 'Worship',      content: 'Song of the week: "Great Are You Lord" — All Sons & Daughters.' },
     ];
+    const snap = await col('homeCards').get();
+    const saved = {};
+    snap.docs.forEach(d => { saved[d.id] = d.data(); });
+    return defaults.map(d => ({ ...d, ...(saved[d.id] || {}) }));
   },
 
   async updateHomeCard(id, data) {

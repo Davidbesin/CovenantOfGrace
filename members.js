@@ -137,20 +137,22 @@ document.querySelectorAll('.sermon-cat-btn').forEach(btn => {
 });
 
 /* ── PRAYERS ── */
+const escText = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 async function renderPrayers() {
   const container = document.getElementById('prayerContainer');
   if (!container) return;
   const list = await DB.getPrayers();
+  if (!list.length) { container.innerHTML = '<p class="text-muted small">No prayer requests yet. Be the first to share one.</p>'; return; }
   container.innerHTML = list.map(p => `
     <div class="col-md-4">
       <div class="prayer-card p-3 h-100">
         <div class="d-flex align-items-center gap-2 mb-3">
           <div class="requester-avatar d-flex align-items-center justify-content-center" style="background:${p.color}">${p.initial}</div>
-          <div><p class="requester-name mb-0">Anonymous</p><p class="requester-time mb-0">${p.time}</p></div>
+          <div><p class="requester-name mb-0">Anonymous</p><p class="requester-time mb-0">${escText(p.time)}</p></div>
         </div>
-        <p class="mb-3">${p.text}</p>
+        <p class="mb-3">${escText(p.text)}</p>
         <button class="pray-btn" data-prayer-id="${p.id}">
-          <i class="bi bi-hands"></i> Pray with me ${p.prayCount > 0 ? `<span class="pray-count">(${p.prayCount})</span>` : ''}
+          <i class="bi bi-hands"></i> Pray with me
         </button>
       </div>
     </div>
