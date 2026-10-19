@@ -22,6 +22,67 @@ const _storage = firebase.storage();
 const col = name => _db.collection(name);
 const docData = d => ({ id: d.id, ...d.data() });
 
+/* ── Default departments (used until the admin edits them; seeded into Firestore on first admin visit) ── */
+const DEFAULT_DEPARTMENTS = [
+  {
+    icon: "🎵", name: "Choir Department", members: 15,
+    schedule: "Thursdays · 6:00 PM",
+    shortDesc: "Leading the congregation into worship.",
+    about: "The Choir Department leads the church in heartfelt worship through songs, hymns, and special ministrations. We believe music is a powerful vehicle for God's presence, and every member plays a vital role in creating an atmosphere where lives are transformed.",
+    meetings: [{ day: "Saturday", time: "5:30 PM – 7:00 PM", label: "Practice" }],
+    requirements: ["A love for worship and music", "Commitment to weekly rehearsals", "Willingness to serve"],
+    leader: "Sis. Aanu", whatsapp: "2348012345678", phone: "2348012345678"
+  },
+  {
+    icon: "🚪", name: "Ushering Department", members: 7,
+    schedule: "Sundays · 6:00 PM",
+    shortDesc: "Creating a warm and welcoming atmosphere.",
+    about: "The Ushering Department is the first point of contact for every worshipper and guest. We assist with seating, maintain order, distribute materials, and ensure that everyone feels genuinely welcomed and cared for.",
+    meetings: [{ day: "Sunday", time: "6:00 PM", label: "Briefing" }],
+    requirements: ["Warm, hospitable personality", "Punctuality and reliability", "Smart appearance on Sundays"],
+    leader: "Bro Taiwo", whatsapp: "2348166410535", phone: "2348166410535"
+  },
+  {
+    icon: "🌟", name: "Teenagers' Church", members: 6,
+    schedule: "Sundays · During Service",
+    shortDesc: "Nurturing teenagers in faith.",
+    about: "Teenagers' Church provides a safe, engaging, and age-appropriate worship experience for teenagers during the main Sunday service, using creative teaching, music, and interactive lessons.",
+    meetings: [{ day: "Online", time: "At leader's discretion", label: "Teachers' preparation" }],
+    requirements: ["Passion for teenage ministry", "DBS / background clearance", "Patience and creativity"],
+    leader: "Pst Teco", whatsapp: "2348066091737", phone: "2348066091737"
+  },
+  {
+    icon: "🎥", name: "Media Department", members: 6,
+    schedule: "Wednesdays · 6:00 PM",
+    shortDesc: "Supporting worship through media and technology.",
+    about: "The Media Department keeps everything running seamlessly. From live sound and projection to livestreaming and recording, our team serves with skill so the congregation can focus entirely on worship.",
+    meetings: [{ day: "At leader's discretion", time: "", label: "" }],
+    requirements: ["Basic media or AV interest", "Willingness to learn", "Reliability on Sundays"],
+    leader: "", whatsapp: "2348093527150", phone: "2348164123021"
+  },
+  {
+    icon: "🙏", name: "Prayer Department", members: 4,
+    schedule: "Mondays · 6:00 AM",
+    shortDesc: "Standing in the gap through prayer.",
+    about: "The Prayer Department is the spiritual engine of the church. We coordinate early morning prayers, intercession sessions, prayer chains, and monthly fasting programmes.",
+    meetings: [
+      { day: "Monday", time: "6:00 AM",  label: "Early morning prayer" },
+      { day: "Friday", time: "10:00 PM", label: "Night vigil (monthly)" }
+    ],
+    requirements: ["Consistent prayer life", "Commitment to early mornings", "Intercession heart"],
+    leader: "", whatsapp: "2347066163224", phone: "2347066163224"
+  },
+  {
+    icon: "📢", name: "Evangelism Department", members: 4,
+    schedule: "Saturdays · 10:00 AM",
+    shortDesc: "Taking the Gospel beyond the church walls.",
+    about: "The Evangelism Department organises street outreaches, door-to-door evangelism, campus missions, and community events to reach people who have never heard the Good News.",
+    meetings: [{ day: "Sunday", time: "7:40 AM", label: "Outreach debrief & prep" }],
+    requirements: ["Boldness and compassion", "Willingness to go out", "Basic evangelism training (provided)"],
+    leader: "Pst Adebesin Adekunle", whatsapp: "2347057131898", phone: "2347057131898"
+  },
+];
+
 const DB = {
 
   /* ══════════════════════════════════════════
@@ -242,6 +303,51 @@ const DB = {
     const out = {};
     snap.docs.forEach(d => { out[d.id] = d.data().checkedIn || {}; });
     return out;
+  },
+
+  /* ══════════════════════════════════════════
+     DEPARTMENTS (Workers' Portal)
+  ══════════════════════════════════════════ */
+  async getDepartments() {
+    const snap = await col('departments').orderBy('order').get();
+    if (!snap.empty) return snap.docs.map(docData);
+    return DEFAULT_DEPARTMENTS.map((d, i) => ({ id: 'seed' + i, order: i, ...d }));
+  },
+
+  /* Copies the defaults into Firestore the first time the admin opens the Departments panel,
+     so every department becomes editable. Does nothing if departments already exist. */
+  async seedDepartments() {
+    const snap = await col('departments').limit(1).get();
+    if (!snap.empty) return;
+    const batch = _db.batch();
+    DEFAULT_DEPARTMENTS.forEach((d, i) => batch.set(col('departments').doc(), { ...d, order: i }));
+    await batch.commit();
+  },
+
+  async addDepartment(data) {
+    const last = await col('departments').orderBy('order', 'desc').limit(1).get();
+    const order = last.empty ? 0 : (last.docs[0].data().order || 0) + 1;
+    await col('departments').add({ ...data, order });
+    return this.getDepartments();
+  },
+
+  async updateDepartment(id, data) {
+    await col('departments').doc(id).update(data);
+    return this.getDepartments();
+  },
+
+  async deleteDepartment(id) {
+    await col('departments').doc(id).delete();
+    return this.getDepartments();
+  },
+
+  /* Swap the display order of two departments */
+  async swapDepartmentOrder(a, b) {
+    const batch = _db.batch();
+    batch.update(col('departments').doc(a.id), { order: b.order });
+    batch.update(col('departments').doc(b.id), { order: a.order });
+    await batch.commit();
+    return this.getDepartments();
   },
 
   /* ══════════════════════════════════════════

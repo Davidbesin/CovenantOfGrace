@@ -1,149 +1,111 @@
-/* workers.js */
+/* workers.js
+   Departments are loaded from Firestore (edit them in Admin → Departments).
+   If the database has none yet, the defaults in shared.js are shown. */
 
-const departments = [
-  {
-    icon: "🎵", name: "Choir Department", members: 15,
-    schedule: "Thursdays · 6:00 PM",
-    shortDesc: "Leading the congregation into worship.",
-    about: "The Choir Department leads the church in heartfelt worship through songs, hymns, and special ministrations. We believe music is a powerful vehicle for God's presence, and every member plays a vital role in creating an atmosphere where lives are transformed.",
-    meetings: [
-      { day: "Saturday",   time: "5.30pm-7 PM", label: "Practice" }
-    ],
-    requirements: ["A love for worship and music", "Commitment to weekly rehearsals", "Willingness to serve"],
-    leader: "Sis. Aanu", whatsapp: "2348012345678", phone: "2348012345678"
-  },
-  {
-    icon: "🚪", name: "Ushering Department", members: 7,
-    schedule: "Sundays · 6:00 PM",
-    shortDesc: "Creating a warm and welcoming atmosphere.",
-    about: "The Ushering Department is the first point of contact for every worshipper and guest. We assist with seating, maintain order, distribute materials, and ensure that everyone feels genuinely welcomed and cared for.",
-    meetings: [
-      { day: "Sunday", time: "6:00 PM", label: "Briefing" },
+const container = document.getElementById("departmentsContainer");
+let departments = [];
 
-    ],
-    requirements: ["Warm, hospitable personality", "Punctuality and reliability", "Smart appearance on Sundays"],
-    leader: "Bro Taiwo", whatsapp: "2348166410535", phone: "2348166410535"
-  },
-  {
-    icon: "🌟", name: "Children's Church", members: 6,
-    schedule: "Sundays · During Service",
-    shortDesc: "Nurturing children in faith.",
-    about: "Children's Church provides a safe, engaging, and age-appropriate worship experience for children aged 3–12 during the main Sunday service, using creative storytelling, music, and interactive lessons.",
-    meetings: [
-      { day: "Online At leaders discretion",    time: "Online At leaders Discretion", label: "Teachers' preparation" }
-    ],
-    requirements: ["Passion for children's ministry", "DBS / background clearance", "Patience and creativity"],
-    leader: "Pst Teco", whatsapp: "2348066091737", phone: "2348066091737"
-  },
-  {
-    icon: "💻", name: "Technical Department", members: 6,
-    schedule: "Wednesdays · 6:00 PM",
-    shortDesc: "Supporting worship through technology.",
-    about: "The Technical Department keeps everything running seamlessly. From live sound and projection to livestreaming and recording, our team serves with skill so the congregation can focus entirely on worship.",
-    meetings: [
-      { day: " At leaders discretion",    time: " At leaders discretion", label: "At leaders discretion" }
-    ],
-    requirements: ["Basic tech or AV interest", "Willingness to learn", "Reliability on Sundays"],
-    leader: "", whatsapp: "2348093527150", phone: "2348164123021"
-  },
-  {
-    icon: "🙏", name: "Prayer Department", members: 4,
-    schedule: "Mondays · 6:00 AM",
-    shortDesc: "Standing in the gap through prayer.",
-    about: "The Prayer Department is the spiritual engine of the church. We coordinate early morning prayers, intercession sessions, prayer chains, and monthly fasting programmes.",
-    meetings: [
-      { day: "Monday", time: "6:00 AM",  label: "Early morning prayer" },
-      { day: "Friday", time: "10:00 PM", label: "Night vigil (monthly)" }
-    ],
-    requirements: ["Consistent prayer life", "Commitment to early mornings", "Intercession heart"],
-    leader: "", whatsapp: "2347066163224", phone: "2347066163224"
-  },
-  {
-    icon: "📢", name: "Evangelism Department", members: 4,
-    schedule: "Saturdays · 10:00 AM",
-    shortDesc: "Taking the Gospel beyond the church walls.",
-    about: "The Evangelism Department organises street outreaches, door-to-door evangelism, campus missions, and community events to reach people who have never heard the Good News.",
-    meetings: [
-      { day: "Sunday", time: "7.40 AM", label: "Outreach debrief & prep" }
-    ],
-    requirements: ["Boldness and compassion", "Willingness to go out", "Basic evangelism training (provided)"],
-    leader: "Pst Adebesin Adekunle", whatsapp: "2347057131898", phone: "2347057131898"
-  },
-];
+const esc    = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const digits = s => String(s ?? '').replace(/\D/g, '');
 
 /* ── RENDER DEPARTMENTS ── */
-const container = document.getElementById("departmentsContainer");
+function renderDepartments() {
+  container.innerHTML = '';
 
-departments.forEach((dept, i) => {
-  const collapseId = `dept-${i}`;
+  if (!departments.length) {
+    container.innerHTML = '<p class="intro">No departments have been added yet.</p>';
+    return;
+  }
 
-  const meetingRows = dept.meetings.map(m => `
-    <div class="meeting-row">
-      <span class="meeting-dot">•</span>
-      <span><strong>${m.day}</strong> · ${m.time} <span class="meeting-label">— ${m.label}</span></span>
-    </div>
-  `).join("");
+  departments.forEach((dept, i) => {
+    const collapseId = `dept-${i}`;
 
-  const reqItems = dept.requirements.map(r => `<li>${r}</li>`).join("");
+    const metaParts = [
+      dept.schedule,
+      (dept.members !== '' && dept.members != null) ? `${dept.members} members` : ''
+    ].filter(Boolean).map(esc).join(' · ');
 
-  const card = document.createElement("div");
-  card.className = "department-card";
-  card.innerHTML = `
-    <button class="department-button"
-      data-bs-toggle="collapse"
-      data-bs-target="#${collapseId}"
-      aria-expanded="false"
-      aria-controls="${collapseId}">
-      <div class="d-flex align-items-center gap-3">
-        <div class="icon-box">${dept.icon}</div>
-        <div class="flex-grow-1 min-w-0">
-          <div class="department-title">${dept.name}</div>
-          <div class="department-meta">${dept.schedule} · ${dept.members} members</div>
-          <div class="department-desc">${dept.shortDesc}</div>
+    const meetings = Array.isArray(dept.meetings) ? dept.meetings : [];
+    const meetingRows = meetings.length
+      ? meetings.map(m => `
+          <div class="meeting-row">
+            <span class="meeting-dot">•</span>
+            <span><strong>${esc(m.day)}</strong>${m.time ? ` · ${esc(m.time)}` : ''}${m.label ? ` <span class="meeting-label">— ${esc(m.label)}</span>` : ''}</span>
+          </div>`).join('')
+      : '<div class="meeting-row"><span class="meeting-label">To be announced by the leader</span></div>';
+
+    const reqs = Array.isArray(dept.requirements) ? dept.requirements : [];
+    const reqItems = reqs.length
+      ? reqs.map(r => `<li>${esc(r)}</li>`).join('')
+      : '<li>Open to everyone willing to serve</li>';
+
+    const wa    = digits(dept.whatsapp);
+    const phone = digits(dept.phone);
+    const contactLinks = `
+      ${wa ? `<div class="contact-item"><i class="bi bi-whatsapp"></i><a href="https://wa.me/${wa}" target="_blank" rel="noopener">+${wa}</a></div>` : ''}
+      ${phone ? `<div class="contact-item"><i class="bi bi-telephone"></i><a href="tel:+${phone}">+${phone}</a></div>` : ''}
+    `;
+
+    const card = document.createElement('div');
+    card.className = 'department-card';
+    card.innerHTML = `
+      <button class="department-button"
+        data-bs-toggle="collapse"
+        data-bs-target="#${collapseId}"
+        aria-expanded="false"
+        aria-controls="${collapseId}">
+        <div class="d-flex align-items-center gap-3">
+          <div class="icon-box">${esc(dept.icon || '⛪')}</div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="department-title">${esc(dept.name)}</div>
+            ${metaParts ? `<div class="department-meta">${metaParts}</div>` : ''}
+            ${dept.shortDesc ? `<div class="department-desc">${esc(dept.shortDesc)}</div>` : ''}
+          </div>
+          <i class="bi bi-chevron-right chevron fs-5"></i>
         </div>
-        <i class="bi bi-chevron-right chevron fs-5"></i>
+      </button>
+
+      <div class="collapse" id="${collapseId}">
+        <div class="details-section">
+          <h4>${esc(dept.name)}</h4>
+          ${dept.about ? `<p class="about-text">${esc(dept.about)}</p>` : ''}
+
+          <div class="info-grid">
+            <div class="info-tile">
+              <div class="info-tile-label">Meeting Times</div>
+              ${meetingRows}
+            </div>
+            <div class="info-tile">
+              <div class="info-tile-label">What We Look For</div>
+              <ul class="req-list">${reqItems}</ul>
+            </div>
+          </div>
+
+          <div class="contact-card">
+            <div class="contact-label">Department Leader</div>
+            <div class="leader-name">${dept.leader ? esc(dept.leader) : 'To be announced'}</div>
+            ${contactLinks}
+          </div>
+
+          <button class="join-btn" data-dept-index="${i}">
+            <i class="bi bi-person-plus-fill"></i>
+            Apply to Join ${esc(dept.name)}
+          </button>
+        </div>
       </div>
-    </button>
+    `;
+    container.appendChild(card);
+  });
+}
 
-    <div class="collapse" id="${collapseId}">
-      <div class="details-section">
-        <h4>${dept.name}</h4>
-        <p class="about-text">${dept.about}</p>
-
-        <div class="info-grid">
-          <div class="info-tile">
-            <div class="info-tile-label">Meeting Times</div>
-            ${meetingRows}
-          </div>
-          <div class="info-tile">
-            <div class="info-tile-label">What We Look For</div>
-            <ul class="req-list">${reqItems}</ul>
-          </div>
-        </div>
-
-        <div class="contact-card">
-          <div class="contact-label">Department Leader</div>
-          <div class="leader-name">${dept.leader}</div>
-          <div class="contact-item">
-            <i class="bi bi-whatsapp"></i>
-            <a href="https://wa.me/${dept.whatsapp}" target="_blank" rel="noopener">+${dept.whatsapp}</a>
-          </div>
-          <div class="contact-item">
-            <i class="bi bi-telephone"></i>
-            <a href="tel:+${dept.phone}">+${dept.phone}</a>
-          </div>
-        </div>
-
-        <button class="join-btn" data-dept-index="${i}">
-          <i class="bi bi-person-plus-fill"></i>
-          Apply to Join ${dept.name}
-        </button>
-      </div>
-    </div>
-  `;
-
-  container.appendChild(card);
-});
+container.innerHTML = '<p class="intro">Loading departments…</p>';
+DB.getDepartments()
+  .then(list => { departments = list; renderDepartments(); })
+  .catch(err => {
+    console.error(err);
+    departments = DEFAULT_DEPARTMENTS.map((d, i) => ({ id: 'seed' + i, ...d }));
+    renderDepartments();
+  });
 
 /* ── REGISTRATION MODAL ── */
 const backdrop   = document.getElementById('regBackdrop');

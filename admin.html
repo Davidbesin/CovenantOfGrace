@@ -66,6 +66,8 @@
     <button class="adm-nav-btn" data-panel="sermons"><i class="bi bi-mic"></i> Sermons</button>
     <button class="adm-nav-btn" data-panel="announcements"><i class="bi bi-megaphone"></i> Announcements</button>
     <button class="adm-nav-btn" data-panel="homecards"><i class="bi bi-house-door"></i> Home Cards</button>
+    <button class="adm-nav-btn" data-panel="departments"><i class="bi bi-diagram-3"></i> Departments</button>
+    <button class="adm-nav-btn" data-panel="departments"><i class="bi bi-diagram-3"></i> Departments</button>
     <button class="adm-nav-btn" data-panel="registrations"><i class="bi bi-person-lines-fill"></i> Worker Applications</button>
     <button class="adm-nav-btn" data-panel="attendance"><i class="bi bi-clipboard2-check"></i> Attendance</button>
   </nav>
@@ -92,6 +94,8 @@
     <button class="adm-nav-btn" data-panel="sermons"><i class="bi bi-mic"></i> Sermons</button>
     <button class="adm-nav-btn" data-panel="announcements"><i class="bi bi-megaphone"></i> Announcements</button>
     <button class="adm-nav-btn" data-panel="homecards"><i class="bi bi-house-door"></i> Home Cards</button>
+    <button class="adm-nav-btn" data-panel="departments"><i class="bi bi-diagram-3"></i> Departments</button>
+    <button class="adm-nav-btn" data-panel="departments"><i class="bi bi-diagram-3"></i> Departments</button>
     <button class="adm-nav-btn" data-panel="registrations"><i class="bi bi-person-lines-fill"></i> Worker Applications</button>
     <button class="adm-nav-btn" data-panel="attendance"><i class="bi bi-clipboard2-check"></i> Attendance</button>
   </div>
@@ -264,6 +268,119 @@
     <div class="adm-att-view" id="att-history">
       <div id="attendanceHistoryList" class="adm-list"></div>
     </div>
+  </div>
+
+  <!-- PANEL: DEPARTMENTS -->
+  <div class="adm-panel" id="panel-departments">
+    <div class="adm-panel-header">
+      <div>
+        <h1>Departments</h1>
+        <p>Edit what appears on the Workers' Portal: names, meeting times, requirements, and leader contacts.</p>
+      </div>
+      <button class="adm-add-btn" id="addDeptBtn"><i class="bi bi-plus-lg"></i> Add Department</button>
+    </div>
+
+    <div class="adm-form-card" id="deptForm" style="display:none">
+      <h3 id="deptFormTitle">Add Department</h3>
+
+      <div class="adm-form-section">Basics</div>
+      <div class="adm-fields">
+        <div class="adm-field"><label>Icon (emoji)</label><input type="text" id="df_icon" placeholder="e.g. 🎥" maxlength="4"></div>
+        <div class="adm-field"><label>Department name</label><input type="text" id="df_name" placeholder="e.g. Media Department"></div>
+        <div class="adm-field"><label>Number of members</label><input type="number" id="df_members" min="0" placeholder="e.g. 6"></div>
+        <div class="adm-field"><label>Schedule (shown on card)</label><input type="text" id="df_schedule" placeholder="e.g. Wednesdays · 6:00 PM"></div>
+        <div class="adm-field adm-field-full"><label>Short description</label><input type="text" id="df_short" placeholder="One line shown on the collapsed card"></div>
+        <div class="adm-field adm-field-full"><label>About</label><textarea id="df_about" rows="4" placeholder="Full description shown when the card is opened"></textarea></div>
+      </div>
+
+      <div class="adm-form-section">Meeting times</div>
+      <div id="df_meetings" class="adm-rows"></div>
+      <button type="button" class="adm-link-btn" id="df_addMeeting"><i class="bi bi-plus-circle"></i> Add meeting time</button>
+
+      <div class="adm-form-section">What we look for</div>
+      <div class="adm-fields">
+        <div class="adm-field adm-field-full">
+          <label>Requirements (one per line)</label>
+          <textarea id="df_reqs" rows="4" placeholder="A love for worship&#10;Commitment to weekly rehearsals"></textarea>
+        </div>
+      </div>
+
+      <div class="adm-form-section">Leader</div>
+      <div class="adm-fields">
+        <div class="adm-field adm-field-full"><label>Leader name</label><input type="text" id="df_leader" placeholder="e.g. Bro. Samuel"></div>
+        <div class="adm-field"><label>WhatsApp (e.g. 2348012345678)</label><input type="text" id="df_whatsapp" inputmode="numeric" placeholder="Country code + number, no +"></div>
+        <div class="adm-field"><label>Phone (e.g. 2348012345678)</label><input type="text" id="df_phone" inputmode="numeric" placeholder="Country code + number, no +"></div>
+      </div>
+
+      <div class="adm-form-actions">
+        <button class="adm-cancel-btn" id="deptCancelBtn">Cancel</button>
+        <button class="adm-save-btn" id="deptSaveBtn">Save Department</button>
+      </div>
+    </div>
+
+    <div id="departmentList" class="adm-list"></div>
+  </div>
+
+  <!-- PANEL: DEPARTMENTS -->
+  <div class="adm-panel" id="panel-departments">
+    <div class="adm-panel-header">
+      <div>
+        <h1>Departments</h1>
+        <p>Add, edit, reorder, or remove the departments shown in the Workers' Portal.</p>
+      </div>
+      <button class="adm-add-btn" id="addDeptBtn"><i class="bi bi-plus-lg"></i> Add Department</button>
+    </div>
+
+    <div class="adm-form-card" id="deptForm" style="display:none">
+      <h3 id="deptFormTitle">Add Department</h3>
+
+      <div class="adm-form-section">Basics</div>
+      <div class="adm-fields">
+        <div class="adm-field"><label>Icon (emoji)</label><input type="text" id="df_icon" placeholder="e.g. 🎵" maxlength="8"></div>
+        <div class="adm-field"><label>Department name</label><input type="text" id="df_name" placeholder="e.g. Media Department"></div>
+        <div class="adm-field"><label>Schedule (shown on the card)</label><input type="text" id="df_schedule" placeholder="e.g. Thursdays · 6:00 PM"></div>
+        <div class="adm-field"><label>Number of members</label><input type="number" id="df_members" min="0" placeholder="e.g. 12"></div>
+        <div class="adm-field adm-field-full"><label>One-line summary</label><input type="text" id="df_shortDesc" placeholder="e.g. Leading the congregation into worship."></div>
+        <div class="adm-field adm-field-full"><label>About this department</label><textarea id="df_about" rows="4" placeholder="Shown when the card is opened…"></textarea></div>
+      </div>
+
+      <div class="adm-form-section">Meeting times</div>
+      <div class="adm-fields">
+        <div class="adm-field adm-field-full">
+          <div id="df_meetings" class="adm-meeting-list"></div>
+          <button type="button" class="adm-link-btn" id="df_addMeeting"><i class="bi bi-plus-circle"></i> Add meeting time</button>
+        </div>
+      </div>
+
+      <div class="adm-form-section">What we look for</div>
+      <div class="adm-fields">
+        <div class="adm-field adm-field-full">
+          <label>Requirements <span class="adm-hint">— one per line</span></label>
+          <textarea id="df_requirements" rows="4" placeholder="A love for worship and music&#10;Commitment to weekly rehearsals"></textarea>
+        </div>
+      </div>
+
+      <div class="adm-form-section">Leader &amp; contact</div>
+      <div class="adm-fields">
+        <div class="adm-field adm-field-full"><label>Leader name</label><input type="text" id="df_leader" placeholder="e.g. Sis. Aanu"></div>
+        <div class="adm-field">
+          <label>WhatsApp number</label>
+          <input type="tel" id="df_whatsapp" placeholder="e.g. 08012345678">
+        </div>
+        <div class="adm-field">
+          <label>Phone number</label>
+          <input type="tel" id="df_phone" placeholder="e.g. 08012345678">
+        </div>
+        <div class="adm-field adm-field-full"><span class="adm-hint">Numbers starting with 0 are converted to +234 automatically. Leave blank to hide.</span></div>
+      </div>
+
+      <div class="adm-form-actions">
+        <button class="adm-cancel-btn" id="deptCancelBtn">Cancel</button>
+        <button class="adm-save-btn" id="deptSaveBtn">Save Department</button>
+      </div>
+    </div>
+
+    <div id="deptList" class="adm-list"></div>
   </div>
 
   <!-- PANEL: REGISTRATIONS -->

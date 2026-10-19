@@ -653,10 +653,186 @@ async function renderAttendanceHistory() {
   document.getElementById('liveClearBtn').addEventListener('click', () => save(''));
 })();
 
+/* ══════════════════════════════════════════
+   DEPARTMENTS (Workers' Portal)
+══════════════════════════════════════════ */
+let editingDeptId = null;
+let _deptCache = [];
+
+const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* "08012345678" -> "2348012345678"; strips spaces, +, dashes */
+function normalizePhone(v) {
+  const d = String(v || '').replace(/\D/g, '');
+  if (d.length === 11 && d.startsWith('0')) return '234' + d.slice(1);
+  return d;
+}
+
+function addMeetingRow(m = {}) {
+  const row = document.createElement('div');
+  row.className = 'adm-meeting-row';
+  row.innerHTML = `
+    <input type="text" class="mt-day"   placeholder="Day, e.g. Sunday"      value="${escHtml(m.day)}">
+    <input type="text" class="mt-time"  placeholder="Time, e.g. 6:00 PM"    value="${escHtml(m.time)}">
+    <input type="text" class="mt-label" placeholder="What, e.g. Rehearsal"  value="${escHtml(m.label)}">
+    <button type="button" class="adm-del-btn" title="Remove"><i class="bi bi-x-lg"></i></button>`;
+  row.querySelector('button').addEventListener('click', () => row.remove());
+  document.getElementById('df_meetings').appendChild(row);
+}
+
+function openDeptForm(d) {
+  editingDeptId = d ? d.id : null;
+  const v = (id, val) => { document.getElementById(id).value = val ?? ''; };
+  v('df_icon', d?.icon);
+  v('df_name', d?.name);
+  v('df_schedule', d?.schedule);
+  v('df_members', d?.members);
+  v('df_shortDesc', d?.shortDesc);
+  v('df_about', d?.about);
+  v('df_requirements', (d?.requirements || []).join('\n'));
+  v('df_leader', d?.leader);
+  v('df_whatsapp', d?.whatsapp);
+  v('df_phone', d?.phone);
+  document.getElementById('df_meetings').innerHTML = '';
+  const meetings = d?.meetings?.length ? d.meetings : (d ? [] : [{}]);
+  meetings.forEach(addMeetingRow);
+  document.getElementById('deptFormTitle').textContent = d ? 'Edit Department' : 'Add Department';
+  const form = document.getElementById('deptForm');
+  form.style.display = 'block';
+  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeDeptForm() {
+  document.getElementById('deptForm').style.display = 'none';
+  editingDeptId = null;
+}
+
+async function renderDepartments() {
+  const el = document.getElementById('deptList');
+  el.innerHTML = '<div class="adm-empty"><i class="bi bi-arrow-clockwise"></i> Loading…</div>';
+
+  let list;
+  try {
+    await DB.seedDepartments();          // first visit: copy defaults so they can be edited
+    list = await DB.getDepartments();
+  } catch (e) {
+    console.error(e);
+    el.innerHTML = '<div class="adm-empty"><i class="bi bi-exclamation-triangle"></i>Could not load departments. Check your connection and Firestore rules (the "departments" collection needs read/write access).</div>';
+    return;
+  }
+  _deptCache = list;
+
+  if (!list.length) {
+    el.innerHTML = '<div class="adm-empty"><i class="bi bi-diagram-3"></i>No departments yet. Add one above.</div>';
+    return;
+  }
+
+  el.innerHTML = list.map((d, i) => {
+    const meta = [d.schedule, (d.members !== '' && d.members != null) ? `${d.members} members` : ''].filter(Boolean).map(escHtml).join(' · ');
+    const chips = [
+      d.leader ? `<span class="adm-chip"><i class="bi bi-person"></i> ${escHtml(d.leader)}</span>` : '<span class="adm-chip">No leader set</span>',
+      `<span class="adm-chip"><i class="bi bi-calendar3"></i> ${(d.meetings || []).length} meeting${(d.meetings || []).length === 1 ? '' : 's'}</span>`,
+      `<span class="adm-chip"><i class="bi bi-check2-square"></i> ${(d.requirements || []).length} requirement${(d.requirements || []).length === 1 ? '' : 's'}</span>`,
+    ].join('');
+    return `
+    <div class="adm-item">
+      <div class="adm-item-icon">${escHtml(d.icon || '⛪')}</div>
+      <div class="adm-item-body">
+        <div class="adm-item-title">${escHtml(d.name)}</div>
+        ${meta ? `<div class="adm-item-sub" style="color:var(--gold);font-weight:600">${meta}</div>` : ''}
+        ${d.shortDesc ? `<div class="adm-item-sub">${escHtml(d.shortDesc)}</div>` : ''}
+        <div class="adm-dept-chips">${chips}</div>
+      </div>
+      <div class="adm-item-actions">
+        <button class="adm-move-btn" data-move="up"   data-id="${d.id}" title="Move up"   ${i === 0 ? 'disabled' : ''}><i class="bi bi-arrow-up"></i></button>
+        <button class="adm-move-btn" data-move="down" data-id="${d.id}" title="Move down" ${i === list.length - 1 ? 'disabled' : ''}><i class="bi bi-arrow-down"></i></button>
+        <button class="adm-edit-btn" data-id="${d.id}" title="Edit"><i class="bi bi-pencil"></i></button>
+        <button class="adm-del-btn"  data-id="${d.id}" title="Delete"><i class="bi bi-trash3"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.adm-move-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const idx = _deptCache.findIndex(x => x.id === btn.dataset.id);
+      const other = _deptCache[idx + (btn.dataset.move === 'up' ? -1 : 1)];
+      if (idx < 0 || !other) return;
+      btn.disabled = true;
+      await DB.swapDepartmentOrder(_deptCache[idx], other);
+      renderDepartments();
+    });
+  });
+
+  el.querySelectorAll('.adm-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const d = _deptCache.find(x => x.id === btn.dataset.id);
+      if (d) openDeptForm(d);
+    });
+  });
+
+  el.querySelectorAll('.adm-del-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const d = _deptCache.find(x => x.id === btn.dataset.id);
+      showConfirm(`Delete ${d ? d.name : 'department'}?`, "It will be removed from the Workers' portal. Existing applications stay in Worker Applications.", async () => {
+        await DB.deleteDepartment(btn.dataset.id);
+        renderDepartments();
+      });
+    });
+  });
+}
+
+document.getElementById('addDeptBtn').addEventListener('click', () => openDeptForm(null));
+document.getElementById('deptCancelBtn').addEventListener('click', closeDeptForm);
+document.getElementById('df_addMeeting').addEventListener('click', () => addMeetingRow());
+
+document.getElementById('deptSaveBtn').addEventListener('click', async () => {
+  const val = id => document.getElementById(id).value.trim();
+  const name = val('df_name');
+  if (!name) return alert('Please enter the department name.');
+
+  const membersRaw = val('df_members');
+  const meetings = [...document.querySelectorAll('#df_meetings .adm-meeting-row')]
+    .map(r => ({
+      day:   r.querySelector('.mt-day').value.trim(),
+      time:  r.querySelector('.mt-time').value.trim(),
+      label: r.querySelector('.mt-label').value.trim(),
+    }))
+    .filter(m => m.day || m.time || m.label);
+
+  const data = {
+    icon:         val('df_icon') || '⛪',
+    name,
+    schedule:     val('df_schedule'),
+    members:      membersRaw === '' ? '' : Math.max(0, parseInt(membersRaw, 10) || 0),
+    shortDesc:    val('df_shortDesc'),
+    about:        val('df_about'),
+    meetings,
+    requirements: val('df_requirements').split('\n').map(s => s.trim()).filter(Boolean),
+    leader:       val('df_leader'),
+    whatsapp:     normalizePhone(val('df_whatsapp')),
+    phone:        normalizePhone(val('df_phone')),
+  };
+
+  const btn = document.getElementById('deptSaveBtn');
+  btn.disabled = true;
+  try {
+    if (editingDeptId) await DB.updateDepartment(editingDeptId, data);
+    else               await DB.addDepartment(data);
+    closeDeptForm();
+    renderDepartments();
+  } catch (e) {
+    console.error(e);
+    alert('Could not save. Please check your connection and try again.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 /* ── INIT ── */
 renderPrayers();
 renderSermons();
 renderAnnouncements();
 renderHomeCards();
 renderRegistrations();
+renderDepartments();
 renderAttendanceCheckin();
