@@ -61,6 +61,7 @@
   </div>
 
   <nav class="adm-nav">
+    <button class="adm-nav-btn" data-panel="live"><i class="bi bi-camera-video"></i> Live Service</button>
     <button class="adm-nav-btn active" data-panel="prayers"><i class="bi bi-hands"></i> Prayer Requests</button>
     <button class="adm-nav-btn" data-panel="sermons"><i class="bi bi-mic"></i> Sermons</button>
     <button class="adm-nav-btn" data-panel="announcements"><i class="bi bi-megaphone"></i> Announcements</button>
@@ -86,12 +87,36 @@
 
   <!-- MOBILE NAV DRAWER -->
   <div class="adm-mobile-drawer" id="mobileDrawer">
+    <button class="adm-nav-btn" data-panel="live"><i class="bi bi-camera-video"></i> Live Service</button>
     <button class="adm-nav-btn active" data-panel="prayers"><i class="bi bi-hands"></i> Prayer Requests</button>
     <button class="adm-nav-btn" data-panel="sermons"><i class="bi bi-mic"></i> Sermons</button>
     <button class="adm-nav-btn" data-panel="announcements"><i class="bi bi-megaphone"></i> Announcements</button>
     <button class="adm-nav-btn" data-panel="homecards"><i class="bi bi-house-door"></i> Home Cards</button>
     <button class="adm-nav-btn" data-panel="registrations"><i class="bi bi-person-lines-fill"></i> Worker Applications</button>
     <button class="adm-nav-btn" data-panel="attendance"><i class="bi bi-clipboard2-check"></i> Attendance</button>
+  </div>
+
+  <!-- PANEL: LIVE -->
+  <div class="adm-panel" id="panel-live">
+    <div class="adm-panel-header">
+      <div>
+        <h1>Live Service</h1>
+        <p>Paste the Google Meet link. The Live Service page updates instantly.</p>
+      </div>
+    </div>
+    <div class="adm-form-card">
+      <div class="adm-fields">
+        <div class="adm-field adm-field-full">
+          <label>Meeting link</label>
+          <input type="url" id="live_url" placeholder="https://meet.google.com/abc-defg-hij">
+        </div>
+      </div>
+      <div class="adm-form-actions">
+        <button class="adm-cancel-btn" id="liveClearBtn">Clear</button>
+        <button class="adm-save-btn" id="liveSaveBtn">Save Link</button>
+      </div>
+      <p id="liveStatus" style="font-size:12.5px;color:#6b7280;margin-top:12px"></p>
+    </div>
   </div>
 
   <!-- PANEL: PRAYERS -->

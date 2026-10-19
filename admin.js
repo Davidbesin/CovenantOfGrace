@@ -627,6 +627,32 @@ async function renderAttendanceHistory() {
   `;
 }
 
+/* ══════════════════════════════════════════
+   LIVE SERVICE LINK
+══════════════════════════════════════════ */
+(async function initLivePanel() {
+  const input  = document.getElementById('live_url');
+  const status = document.getElementById('liveStatus');
+  try { input.value = await DB.getLiveLink(); } catch (e) {}
+
+  async function save(url) {
+    if (url && !/^https?:\/\//i.test(url)) {
+      status.textContent = 'Link must start with https://';
+      return;
+    }
+    try {
+      await DB.setLiveLink(url);
+      input.value = url;
+      status.textContent = url ? '✓ Saved. Members will see this link now.' : '✓ Link cleared.';
+    } catch (e) {
+      console.error(e);
+      status.textContent = 'Could not save. Check your connection and Firestore rules.';
+    }
+  }
+  document.getElementById('liveSaveBtn').addEventListener('click', () => save(input.value.trim()));
+  document.getElementById('liveClearBtn').addEventListener('click', () => save(''));
+})();
+
 /* ── INIT ── */
 renderPrayers();
 renderSermons();

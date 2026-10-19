@@ -243,4 +243,20 @@ const DB = {
     snap.docs.forEach(d => { out[d.id] = d.data().checkedIn || {}; });
     return out;
   },
+
+  /* ══════════════════════════════════════════
+     LIVE SERVICE LINK (Google Meet etc.)
+  ══════════════════════════════════════════ */
+  async getLiveLink() {
+    const doc = await col('settings').doc('live').get();
+    return doc.exists ? (doc.data().url || '') : '';
+  },
+
+  async setLiveLink(url) {
+    await col('settings').doc('live').set({
+      url: url.trim(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return url.trim();
+  },
 };
