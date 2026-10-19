@@ -11,6 +11,7 @@ function setActive(id) {
 }
 allLinks.forEach(a => {
   a.addEventListener('click', e => {
+    if (!a.getAttribute('href').startsWith('#')) return; // real page link (e.g. live.html)
     e.preventDefault();
     const id = a.getAttribute('href').slice(1);
     const target = document.getElementById(id);
