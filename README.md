@@ -206,3 +206,14 @@ When deploying, remember that localStorage is browser-specific. For shared real-
 | `cog_announcements` | Array of announcement objects |
 | `cog_home_cards` | Array of 3 home card objects |
 | `cog_registrations` | Array of worker application objects |
+
+
+## Device IDs & access levels
+
+- First visit to the Workers' Portal asks for name, phone, WhatsApp and departments. The device gets a random token (localStorage + cookie) and a record in the Firestore `devices` collection.
+- Non-workers get in immediately. Ticked departments are *requests*, approved by a Super Admin or that department's head (People & Access panel, or Worker Applications).
+- Members-only (shown to members, heads and Super Admins): department announcement, leader contact numbers, links.
+- Admin portal needs a Super Admin or Department Head ID. Heads only see Departments, Worker Applications and People & Access, limited to their own departments.
+- First Super Admin: if none exists, `admin.html` asks for the setup password (`BOOTSTRAP_PASSWORD` in `access.js`) once. If every admin device is lost, edit `superAdmin: true` on a record in the Firebase console.
+- Add `devices` to your Firestore rules (read/write), like the other collections.
+- This is a soft gate: the data is still readable by anyone with the Firebase config. Real enforcement needs Firebase Auth + security rules.

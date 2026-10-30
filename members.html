@@ -33,7 +33,7 @@
   </nav>
 </div>
 
-<div class="d-flex vh-100 overflow-hidden">
+<div class="members-shell d-flex vh-100 overflow-hidden">
 
   <!-- SIDEBAR -->
   <aside class="sidebar d-none d-lg-flex flex-column flex-shrink-0">
@@ -69,18 +69,18 @@
   </aside>
 
   <!-- PANELS -->
-  <div class="panels-viewport d-flex flex-nowrap flex-grow-1 overflow-x-auto overflow-y-hidden h-100">
+  <div class="panels-viewport flex-grow-1 h-100">
 
     <!-- HOME -->
-    <section id="home" class="panel h-100 p-4 p-lg-5" style="background:var(--surface)">
+    <section id="home" class="panel p-4 p-lg-5" style="background:var(--surface)">
       <div class="mb-4">
         <p class="greeting mb-1" id="todayDate"></p>
-        <h1 class="page-h1">Good morning, beloved.</h1>
+        <h1 class="page-h1" id="greetingH1">Good day, beloved.</h1>
       </div>
       <div class="verse-card card p-4 mb-4">
         <p class="verse-eyebrow mb-2">Today's Scripture</p>
-        <p class="verse-text mb-3">"For I know the plans I have for you," declares the Lord, "plans to prosper you and not to harm you, plans to give you hope and a future."</p>
-        <p class="verse-ref mb-0">— Jeremiah 29:11 (NIV)</p>
+        <p class="verse-text mb-3" id="verseText">"For I know the plans I have for you," declares the Lord, "plans to prosper you and not to harm you, plans to give you hope and a future."</p>
+        <p class="verse-ref mb-0" id="verseRef">— Jeremiah 29:11 (NIV)</p>
       </div>
       <a href="live.html" class="d-flex align-items-center justify-content-between text-decoration-none p-3 mb-4 rounded-4" style="background:var(--gold-glow);border:1px solid rgba(200,134,10,.3);color:var(--navy)">
         <span class="fw-semibold"><i class="bi bi-camera-video-fill me-2" style="color:var(--gold)"></i> Join the live service</span>
@@ -90,7 +90,7 @@
     </section>
 
     <!-- ANNOUNCEMENTS -->
-    <section id="announcements" class="panel h-100 p-4 p-lg-5" style="background:var(--surface)">
+    <section id="announcements" class="panel p-4 p-lg-5" style="background:var(--surface)">
       <div class="d-flex justify-content-between align-items-baseline mb-4">
         <h2 class="section-title mb-0">Announcements</h2>
       </div>
@@ -98,7 +98,7 @@
     </section>
 
     <!-- SERMONS -->
-    <section id="sermons" class="panel h-100 p-4 p-lg-5" style="background:var(--surface)">
+    <section id="sermons" class="panel p-4 p-lg-5" style="background:var(--surface)">
       <div class="d-flex justify-content-between align-items-baseline mb-4">
         <h2 class="section-title mb-0">Recent Sermons</h2>
       </div>
@@ -111,7 +111,7 @@
     </section>
 
     <!-- PRAYER -->
-    <section id="prayer" class="panel h-100 p-4 p-lg-5" style="background:var(--surface)">
+    <section id="prayer" class="panel p-4 p-lg-5" style="background:var(--surface)">
       <div class="d-flex justify-content-between align-items-baseline mb-3">
         <h2 class="section-title mb-0">Prayer Requests</h2>
       </div>
@@ -133,7 +133,7 @@
     </section>
 
     <!-- ABOUT -->
-    <section id="about" class="panel h-100 p-4 p-lg-5" style="background:var(--surface)">
+    <section id="about" class="panel p-4 p-lg-5" style="background:var(--surface)">
       <h2 class="section-title mb-4">About Us</h2>
       <div class="about-card card p-4 border-0 shadow-sm mb-4">
         <p class="text-muted mb-4" style="font-size:14.5px;line-height:1.75;max-width:620px">To the glory of the Almighty God, The Redeemed Christian Church of God,

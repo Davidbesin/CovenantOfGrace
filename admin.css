@@ -618,3 +618,25 @@ body {
   .adm-meeting-row .adm-del-btn { grid-column: 2; grid-row: 1; justify-self: end; display: none; }
   .adm-item-actions { flex-wrap: wrap; justify-content: flex-end; }
 }
+
+/* ── People & Access ── */
+.adm-whoami { font-size: 12px; color: rgba(255,255,255,.7); margin-bottom: 10px; line-height: 1.4; }
+.adm-whoami strong { display: block; color: #fff; font-size: 13px; }
+.adm-check { display: flex !important; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; }
+.adm-check input { width: 18px; height: 18px; }
+.adm-dept-pick { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.adm-dept-pick .pick-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 10px; background: #f9fafb; }
+.adm-dept-pick .pick-row label { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 500; cursor: pointer; }
+.adm-dept-pick .pick-row .pick-head { font-size: 12px; color: #6b7280; }
+.adm-dept-pick input[type=checkbox] { width: 17px; height: 17px; }
+.adm-person-contacts { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 6px; font-size: 12.5px; }
+.adm-person-contacts a { color: var(--navy-2); text-decoration: none; font-weight: 500; }
+.adm-person-contacts i { margin-right: 4px; color: var(--gold); }
+.adm-chip-head { background: #fef3c7; color: #92400e; }
+.adm-chip-super { background: var(--navy); color: #fff; }
+.adm-req-card { border: 1px solid #fde68a; background: #fffbeb; border-radius: 14px; padding: 4px 14px; margin-bottom: 8px; }
+.adm-req-card .adm-item { border: none; box-shadow: none; background: transparent; padding-left: 0; padding-right: 0; }
+.adm-links-row { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 8px; margin-bottom: 8px; align-items: center; }
+.adm-links-row input { min-width: 0; }
+.adm-links-row .adm-del-btn { width: 38px; height: 38px; }
+@media (max-width: 640px) { .adm-links-row { grid-template-columns: 1fr auto; } .adm-links-row .lk-url { grid-column: 1 / -1; grid-row: 2; } }

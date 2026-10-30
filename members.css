@@ -124,17 +124,20 @@ body {
 .sidebar-quote { font-family: 'Playfair Display', Georgia, serif; font-size: 12px; font-style: italic; color: rgba(255,255,255,.32); line-height: 1.6; }
 
 /* ─── PANELS ── */
+/* Sections are stacked vertically: scroll freely through all of them,
+   or use the nav to jump to one. */
 .panels-viewport {
-  scroll-snap-type: x mandatory;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  scrollbar-width: thin;
 }
-.panels-viewport::-webkit-scrollbar { display: none; }
+.panels-viewport::-webkit-scrollbar { width: 6px; }
+.panels-viewport::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 6px; }
 
-.panel { flex-shrink: 0; width: 100%; scroll-snap-align: start; overflow-y: auto; scrollbar-width: thin; }
-.panel::-webkit-scrollbar { width: 4px; }
-.panel::-webkit-scrollbar-thumb { background: rgba(0,0,0,.1); border-radius: 4px; }
+.panel { width: 100%; min-height: 100%; scroll-margin-top: 0; }
 
 /* ─── TYPOGRAPHY ── */
 .section-title { font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; color: #111827; }
@@ -236,8 +239,10 @@ body {
   body { overflow: auto; }
   .sidebar { display: none !important; }
   .mobile-header { display: block; position: sticky; top: 0; z-index: 100; }
-  .panels-viewport { display: block !important; overflow-x: hidden; scroll-snap-type: none; }
-  .panel { width: 100% !important; height: auto !important; overflow-y: visible; scroll-snap-align: none; }
+  .members-shell { height: auto !important; overflow: visible !important; }
+  .panels-viewport { display: block !important; height: auto !important; overflow: visible; }
+  .panel { width: 100% !important; min-height: 0; scroll-margin-top: 96px; }
+  html { scroll-behavior: smooth; }
   .page-h1 { font-size: 24px; }
   .verse-text { font-size: 15px; }
 }

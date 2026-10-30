@@ -34,6 +34,46 @@ function timeAgo(date) {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+/* "08012345678" -> "2348012345678" (Nigerian numbers); strips spaces, +, dashes */
+function waNumber(v) {
+  const d = String(v || '').replace(/\D/g, '');
+  if (d.length === 11 && d.startsWith('0')) return '234' + d.slice(1);
+  return d;
+}
+
+/* Makes a safe link: http(s)/mailto/tel only; adds https:// when the scheme is missing. Returns '' if unusable. */
+function cleanLinkUrl(u) {
+  u = String(u || '').trim();
+  if (!u) return '';
+  if (/^(https?:|mailto:|tel:)/i.test(u)) return u;
+  if (/^[a-z][a-z0-9+.\-]*:/i.test(u)) return '';          // javascript:, data:, etc.
+  return 'https://' + u.replace(/^\/+/, '');
+}
+
+/* Bootstrap-icons class for a link, chosen from where it points */
+function linkIcon(url) {
+  const u = String(url || '').toLowerCase();
+  if (u.startsWith('mailto:')) return 'bi-envelope-fill';
+  if (u.startsWith('tel:'))    return 'bi-telephone-fill';
+  const rules = [
+    [/wa\.me|whatsapp\.com/, 'bi-whatsapp'],
+    [/t\.me|telegram\./, 'bi-telegram'],
+    [/youtube\.com|youtu\.be/, 'bi-youtube'],
+    [/meet\.google\./, 'bi-camera-video-fill'],
+    [/zoom\.us/, 'bi-camera-video-fill'],
+    [/docs\.google\./, 'bi-file-earmark-text-fill'],
+    [/sheets\.google\./, 'bi-file-earmark-spreadsheet-fill'],
+    [/drive\.google\./, 'bi-folder-fill'],
+    [/facebook\.com|fb\.com|fb\.me/, 'bi-facebook'],
+    [/instagram\.com/, 'bi-instagram'],
+    [/tiktok\.com/, 'bi-tiktok'],
+    [/twitter\.com|x\.com/, 'bi-twitter-x'],
+    [/spotify\.com/, 'bi-spotify'],
+  ];
+  for (const [re, icon] of rules) if (re.test(u)) return icon;
+  return 'bi-link-45deg';
+}
+
 /* ── Default departments (used until the admin edits them; seeded into Firestore on first admin visit) ── */
 const DEFAULT_DEPARTMENTS = [
   {
@@ -270,8 +310,19 @@ const DB = {
     return this.getRegistrations();
   },
 
+  /* Approving/rejecting an application that came from a registered device also
+     adds/removes that department on the device's ID. */
   async updateRegistrationStatus(id, status) {
-    await col('registrations').doc(id).update({ status });
+    const ref = col('registrations').doc(id);
+    const snap = await ref.get();
+    await ref.update({ status });
+    const r = snap.exists ? snap.data() : null;
+    if (r && r.deviceToken && r.deptId) {
+      try {
+        if (status === 'approved') await this.approveDept(r.deviceToken, r.deptId);
+        else if (status === 'rejected') await this.rejectDept(r.deviceToken, r.deptId);
+      } catch (e) { console.warn('Device no longer exists', e); }
+    }
     return this.getRegistrations();
   },
 
@@ -347,7 +398,7 @@ const DB = {
     const snap = await col('departments').limit(1).get();
     if (!snap.empty) return;
     const batch = _db.batch();
-    DEFAULT_DEPARTMENTS.forEach((d, i) => batch.set(col('departments').doc(), { ...d, order: i }));
+    DEFAULT_DEPARTMENTS.forEach((d, i) => batch.set(col('departments').doc('seed' + i), { ...d, order: i }));
     await batch.commit();
   },
 
@@ -375,6 +426,79 @@ const DB = {
     batch.update(col('departments').doc(b.id), { order: a.order });
     await batch.commit();
     return this.getDepartments();
+  },
+
+  /* ══════════════════════════════════════════
+     DEVICES / IDs  (soft access gate — see access.js)
+     devices/{token}: { name, phone, whatsapp, departments[], requested[], headOf[], superAdmin }
+  ══════════════════════════════════════════ */
+  async getDevice(token) {
+    const d = await col('devices').doc(token).get();
+    return d.exists ? docData(d) : null;
+  },
+
+  async createDevice(token, data) {
+    await col('devices').doc(token).set({
+      ...data,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  },
+
+  async updateDevice(token, data) {
+    await col('devices').doc(token).update(data);
+  },
+
+  async getDevices() {
+    const snap = await col('devices').get();
+    return snap.docs.map(docData).sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+  },
+
+  async deleteDevice(token) {
+    await col('devices').doc(token).delete();
+  },
+
+  async hasSuperAdmin() {
+    const snap = await col('devices').where('superAdmin', '==', true).limit(1).get();
+    return !snap.empty;
+  },
+
+  /* ── department membership ── */
+  async requestDept(token, deptId) {
+    await col('devices').doc(token).update({ requested: firebase.firestore.FieldValue.arrayUnion(deptId) });
+  },
+
+  async approveDept(token, deptId) {
+    const F = firebase.firestore.FieldValue;
+    await col('devices').doc(token).update({ departments: F.arrayUnion(deptId), requested: F.arrayRemove(deptId) });
+    await this._settleApplications(token, deptId, 'approved');
+  },
+
+  async rejectDept(token, deptId) {
+    await col('devices').doc(token).update({ requested: firebase.firestore.FieldValue.arrayRemove(deptId) });
+    await this._settleApplications(token, deptId, 'rejected');
+  },
+
+  /* Removes a person from a department (and from its head list). */
+  async removeFromDept(token, deptId) {
+    const F = firebase.firestore.FieldValue;
+    await col('devices').doc(token).update({ departments: F.arrayRemove(deptId), headOf: F.arrayRemove(deptId) });
+  },
+
+  /* A head is always also a member of the department. */
+  async setDeptHead(token, deptId, on) {
+    const F = firebase.firestore.FieldValue;
+    if (on) await col('devices').doc(token).update({ headOf: F.arrayUnion(deptId), departments: F.arrayUnion(deptId), requested: F.arrayRemove(deptId) });
+    else    await col('devices').doc(token).update({ headOf: F.arrayRemove(deptId) });
+  },
+
+  /* Keeps Worker Applications in step when the department is settled from the People panel. */
+  async _settleApplications(token, deptId, status) {
+    const snap = await col('registrations')
+      .where('deviceToken', '==', token).where('deptId', '==', deptId).where('status', '==', 'pending').get();
+    if (snap.empty) return;
+    const batch = _db.batch();
+    snap.docs.forEach(d => batch.update(d.ref, { status }));
+    await batch.commit();
   },
 
   /* ══════════════════════════════════════════

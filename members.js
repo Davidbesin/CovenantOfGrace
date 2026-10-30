@@ -15,18 +15,35 @@ allLinks.forEach(a => {
     e.preventDefault();
     const id = a.getAttribute('href').slice(1);
     const target = document.getElementById(id);
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setActive(id);
   });
 });
+
+/* Highlight the nav item for whichever section is at the top while scrolling.
+   Desktop scrolls inside .panels-viewport; mobile scrolls the page itself. */
 const viewport = document.querySelector('.panels-viewport');
-if (viewport) {
-  const observer = new IntersectionObserver(
-    entries => entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); }),
-    { root: viewport, threshold: 0.5 }
-  );
-  sections.forEach(s => observer.observe(s));
+const sectionList = [...sections];
+let _scrollTick = false;
+function updateActiveOnScroll() {
+  _scrollTick = false;
+  const isDesktopScroller = viewport && viewport.scrollHeight > viewport.clientHeight + 1 &&
+                            getComputedStyle(viewport).overflowY !== 'visible';
+  const line = (isDesktopScroller ? viewport.getBoundingClientRect().top : 96) + 80;
+  let current = sectionList[0];
+  sectionList.forEach(s => { if (s.getBoundingClientRect().top <= line) current = s; });
+  // at the very bottom, make sure the last section can become active
+  const atBottom = isDesktopScroller
+    ? viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - 2
+    : window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+  if (atBottom) current = sectionList[sectionList.length - 1];
+  if (current) setActive(current.id);
 }
+function onScroll() { if (!_scrollTick) { _scrollTick = true; requestAnimationFrame(updateActiveOnScroll); } }
+if (viewport) viewport.addEventListener('scroll', onScroll, { passive: true });
+window.addEventListener('scroll', onScroll, { passive: true });
+window.addEventListener('resize', onScroll);
+updateActiveOnScroll();
 
 /* ── HOME CARDS ── */
 async function renderHomeCards() {
@@ -187,7 +204,66 @@ if (postPrayerBtn) {
   });
 }
 
+/* ── DAILY SCRIPTURE ──
+   One verse per calendar day, same for everyone. A curated list of references is rotated
+   by day-of-year, and the text is fetched from the free bible-api.com (no key needed).
+   The result is cached in localStorage for the day; if the API is unreachable, the
+   fallback verse already in the HTML stays on screen. */
+const DAILY_VERSES = [
+  'Jeremiah 29:11','Psalm 23:1-3','Proverbs 3:5-6','Isaiah 41:10','Philippians 4:6-7',
+  'Romans 8:28','Joshua 1:9','Psalm 46:1','Matthew 6:33','John 3:16',
+  'Isaiah 40:31','Psalm 121:1-2','2 Corinthians 5:7','Romans 12:2','Philippians 4:13',
+  'Psalm 27:1','Matthew 11:28','Proverbs 16:3','Isaiah 26:3','Lamentations 3:22-23',
+  'Psalm 37:4-5','John 14:27','Galatians 6:9','Hebrews 11:1','1 Peter 5:7',
+  'Psalm 91:1-2','Deuteronomy 31:6','Romans 15:13','Colossians 3:23','James 1:5',
+  'Psalm 119:105','Micah 6:8','2 Timothy 1:7','Ephesians 2:8-9','Psalm 34:8',
+  'John 15:5','Zephaniah 3:17','Psalm 139:14','1 Corinthians 13:4-7','Matthew 5:16',
+  'Isaiah 43:2','Psalm 118:24','Romans 5:8','Hebrews 13:8','Psalm 62:1-2',
+  'Proverbs 18:10','John 16:33','Philippians 1:6','Psalm 30:5','1 Thessalonians 5:16-18',
+  'Isaiah 55:8-9','Psalm 100:4-5','Matthew 7:7-8','Romans 10:9','Psalm 16:11',
+  'Ephesians 6:10','Luke 1:37','Psalm 56:3-4','Numbers 6:24-26','2 Chronicles 7:14',
+  'Psalm 51:10','Proverbs 22:6','John 8:12','Revelation 21:4','Habakkuk 3:19'
+];
+
+function dayOfYear(d) {
+  return Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+}
+
+async function loadDailyVerse() {
+  const textEl = document.getElementById('verseText');
+  const refEl  = document.getElementById('verseRef');
+  if (!textEl || !refEl) return;
+
+  const now = new Date();
+  const key = `cog_verse_${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+
+  const show = v => {
+    textEl.textContent = `"${v.text}"`;
+    refEl.textContent  = `— ${v.ref}`;
+  };
+
+  try { const c = JSON.parse(localStorage.getItem(key)); if (c && c.text) return show(c); } catch (e) {}
+
+  const ref = DAILY_VERSES[dayOfYear(now) % DAILY_VERSES.length];
+  try {
+    const res = await fetch(`https://bible-api.com/${encodeURIComponent(ref)}?translation=kjv`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const text = String(data.text || '').replace(/\s+/g, ' ').trim();
+    if (!text) throw new Error('Empty verse');
+    const v = { text, ref: `${data.reference || ref} (KJV)` };
+    show(v);
+    try {
+      Object.keys(localStorage).filter(k => k.startsWith('cog_verse_') && k !== key).forEach(k => localStorage.removeItem(k));
+      localStorage.setItem(key, JSON.stringify(v));
+    } catch (e) {}
+  } catch (err) {
+    console.warn('Daily verse unavailable, keeping fallback', err);
+  }
+}
+
 /* ── INIT ── */
+loadDailyVerse();
 renderHomeCards();
 renderAnnouncements();
 renderSermons();

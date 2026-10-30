@@ -13,40 +13,6 @@
 </head>
 <body>
 
-<!-- LOGIN OVERLAY -->
-<div id="loginOverlay">
-  <div class="login-card">
-    <div class="login-logo">
-      <div class="login-cross">✛</div>
-      <div>
-        <strong>Chapel of Grace</strong>
-        <span>Admin Portal</span>
-      </div>
-    </div>
-
-    <p class="login-sub">Sign in to access the dashboard</p>
-
-    <div class="login-field">
-      <label for="loginUsername">Username</label>
-      <input type="text" id="loginUsername" placeholder="Enter username" autocomplete="username" />
-    </div>
-
-    <div class="login-field">
-      <label for="loginPassword">Password</label>
-      <div class="login-pw-wrap">
-        <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password" />
-        <button type="button" class="login-eye" id="loginEyeBtn" aria-label="Toggle password visibility">
-          <i class="bi bi-eye" id="loginEyeIcon"></i>
-        </button>
-      </div>
-    </div>
-
-    <div class="login-error" id="loginError">Incorrect username or password.</div>
-
-    <button class="login-btn" id="loginBtn">Sign In</button>
-  </div>
-</div>
-
 <!-- SIDEBAR -->
 <aside class="adm-sidebar d-flex flex-column">
   <div class="adm-sidebar-top">
@@ -69,10 +35,12 @@
     <button class="adm-nav-btn" data-panel="departments"><i class="bi bi-diagram-3"></i> Departments</button>
     <button class="adm-nav-btn" data-panel="registrations"><i class="bi bi-person-lines-fill"></i> Worker Applications</button>
     <button class="adm-nav-btn" data-panel="attendance"><i class="bi bi-clipboard2-check"></i> Attendance</button>
+    <button class="adm-nav-btn" data-panel="people"><i class="bi bi-people"></i> People &amp; Access</button>
   </nav>
 
   <div class="adm-sidebar-foot">
-    <button class="adm-logout-btn" id="logoutBtn"><i class="bi bi-box-arrow-left"></i> Sign Out</button>
+    <div class="adm-whoami" id="whoAmI"></div>
+    <button class="adm-logout-btn" id="logoutBtn"><i class="bi bi-box-arrow-left"></i> Forget this device</button>
   </div>
 </aside>
 
@@ -96,6 +64,7 @@
     <button class="adm-nav-btn" data-panel="departments"><i class="bi bi-diagram-3"></i> Departments</button>
     <button class="adm-nav-btn" data-panel="registrations"><i class="bi bi-person-lines-fill"></i> Worker Applications</button>
     <button class="adm-nav-btn" data-panel="attendance"><i class="bi bi-clipboard2-check"></i> Attendance</button>
+    <button class="adm-nav-btn" data-panel="people"><i class="bi bi-people"></i> People &amp; Access</button>
   </div>
 
   <!-- PANEL: LIVE -->
@@ -299,6 +268,23 @@
         </div>
       </div>
 
+      <div class="adm-form-section">Announcement</div>
+      <div class="adm-fields">
+        <div class="adm-field adm-field-full">
+          <label>Department announcement <span class="adm-hint">— shown to members of this department only. Leave blank to hide.</span></label>
+          <textarea id="df_announcement" rows="3" placeholder="e.g. Rehearsal moved to Friday this week."></textarea>
+        </div>
+      </div>
+
+      <div class="adm-form-section">Links <span class="adm-hint" style="text-transform:none;letter-spacing:0">— members only</span></div>
+      <div class="adm-fields">
+        <div class="adm-field adm-field-full">
+          <span class="adm-hint">Add the WhatsApp group, a songs folder, a Meet link, etc. Say what each link is for. The icon is picked automatically from the address.</span>
+          <div id="df_links" class="adm-meeting-list" style="margin-top:8px"></div>
+          <button type="button" class="adm-link-btn" id="df_addLink"><i class="bi bi-plus-circle"></i> Add link</button>
+        </div>
+      </div>
+
       <div class="adm-form-section">What we look for</div>
       <div class="adm-fields">
         <div class="adm-field adm-field-full">
@@ -307,7 +293,7 @@
         </div>
       </div>
 
-      <div class="adm-form-section">Leader &amp; contact</div>
+      <div class="adm-form-section">Leader &amp; contact <span class="adm-hint" style="text-transform:none;letter-spacing:0">— numbers are shown to members only</span></div>
       <div class="adm-fields">
         <div class="adm-field adm-field-full"><label>Leader name</label><input type="text" id="df_leader" placeholder="e.g. Sis. Aanu"></div>
         <div class="adm-field">
@@ -328,6 +314,41 @@
     </div>
 
     <div id="deptList" class="adm-list"></div>
+  </div>
+
+  <!-- PANEL: PEOPLE & ACCESS -->
+  <div class="adm-panel" id="panel-people">
+    <div class="adm-panel-header">
+      <div>
+        <h1>People &amp; Access</h1>
+        <p id="peopleSub">Everyone who has registered a device. Approve department requests, rename people, and set who is a department head or Super Admin.</p>
+      </div>
+    </div>
+
+    <div class="adm-form-card" id="personForm" style="display:none">
+      <h3 id="personFormTitle">Edit person</h3>
+      <div class="adm-fields">
+        <div class="adm-field"><label>Name</label><input type="text" id="pf_name"></div>
+        <div class="adm-field"><label>Phone number</label><input type="tel" id="pf_phone"></div>
+        <div class="adm-field"><label>WhatsApp number</label><input type="tel" id="pf_whatsapp"></div>
+        <div class="adm-field adm-field-full">
+          <label>Departments <span class="adm-hint">— tick where they serve; use "Head" to make them a department head</span></label>
+          <div id="pf_depts" class="adm-dept-pick"></div>
+        </div>
+        <div class="adm-field adm-field-full" id="pf_superWrap">
+          <label class="adm-check"><input type="checkbox" id="pf_super"> Super Admin <span class="adm-hint">— full access to the whole admin portal</span></label>
+        </div>
+      </div>
+      <div class="adm-form-actions">
+        <button class="adm-cancel-btn" id="personCancelBtn">Cancel</button>
+        <button class="adm-save-btn" id="personSaveBtn">Save</button>
+      </div>
+      <p id="personStatus" style="font-size:12.5px;color:#ef4444;margin-top:10px"></p>
+    </div>
+
+    <div id="peopleRequests"></div>
+    <div class="adm-form-section" id="peopleAllLabel" style="margin:18px 0 8px">All people</div>
+    <div id="peopleList" class="adm-list"></div>
   </div>
 
   <!-- PANEL: REGISTRATIONS -->
@@ -361,6 +382,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script src="shared.js"></script>
+  <script src="access.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>

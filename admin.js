@@ -2,59 +2,36 @@
 
 const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-/* ── AUTH ── */
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'grace2024';
-const SESSION_KEY    = 'cog_admin_auth';
+/* ── ACCESS ──
+   Admin access is by device ID (access.js): Super Admins see everything,
+   Department Heads only see their own department(s). */
+let ME = null;
+let IS_SUPER = false;
+const HEAD_PANELS = ['departments', 'registrations', 'people'];
+const canManage = deptId => IS_SUPER || (ME && ME.headOf.includes(deptId));
 
-(function initAuth() {
-  const overlay    = document.getElementById('loginOverlay');
-  const loginBtn   = document.getElementById('loginBtn');
-  const logoutBtn  = document.getElementById('logoutBtn');
-  const loginError = document.getElementById('loginError');
-  const eyeBtn     = document.getElementById('loginEyeBtn');
-  const eyeIcon    = document.getElementById('loginEyeIcon');
-  const pwInput    = document.getElementById('loginPassword');
+function applyRole() {
+  IS_SUPER = !!ME.superAdmin;
+  const who = document.getElementById('whoAmI');
+  const names = ME.superAdmin ? 'Super Admin' : 'Department Head';
+  who.innerHTML = `<strong>${escHtml(ME.name)}</strong>${names}`;
 
-  function showDashboard() { overlay.classList.add('hidden'); }
-  function showLogin()     { overlay.classList.remove('hidden'); }
-
-  if (localStorage.getItem(SESSION_KEY) === '1') showDashboard();
-
-  function attemptLogin() {
-    const user = document.getElementById('loginUsername').value.trim();
-    const pass = pwInput.value;
-    if (user === ADMIN_USERNAME && pass === ADMIN_PASSWORD) {
-      loginError.classList.remove('visible');
-      localStorage.setItem(SESSION_KEY, '1');
-      showDashboard();
-    } else {
-      loginError.classList.add('visible');
-      pwInput.value = '';
-      pwInput.focus();
-    }
+  if (!IS_SUPER) {
+    document.querySelectorAll('.adm-nav-btn').forEach(b => { if (!HEAD_PANELS.includes(b.dataset.panel)) b.remove(); });
+    document.querySelectorAll('.adm-panel').forEach(p => { if (!HEAD_PANELS.includes(p.id.replace('panel-', ''))) p.remove(); });
+    document.getElementById('addDeptBtn').style.display = 'none';
+    document.querySelector('#panel-departments .adm-panel-header p').textContent = 'Edit the details, announcement, meeting times and links of the department(s) you lead.';
+    document.querySelector('#panel-registrations .adm-panel-header p').textContent = 'Applications to join your department(s).';
+    document.getElementById('peopleSub').textContent = 'Members and requests for the department(s) you lead. Approve requests, or remove or promote members.';
+    document.getElementById('peopleAllLabel').textContent = 'Members';
+    document.querySelector('.adm-mobile-title').textContent = 'Department Head';
+    switchPanel('people');
   }
+}
 
-  loginBtn.addEventListener('click', attemptLogin);
-  ['loginUsername', 'loginPassword'].forEach(id => {
-    document.getElementById(id).addEventListener('keydown', e => {
-      if (e.key === 'Enter') attemptLogin();
-    });
-  });
-
-  eyeBtn.addEventListener('click', () => {
-    const isHidden = pwInput.type === 'password';
-    pwInput.type = isHidden ? 'text' : 'password';
-    eyeIcon.className = isHidden ? 'bi bi-eye-slash' : 'bi bi-eye';
-  });
-
-  logoutBtn.addEventListener('click', () => {
-    localStorage.removeItem(SESSION_KEY);
-    showLogin();
-    document.getElementById('loginUsername').value = '';
-    document.getElementById('loginPassword').value = '';
-  });
-})();
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  if (confirm('Forget this device? You will need to register it again to get back in.')) Access.reset();
+});
 
 /* ── PANEL SWITCHING ── */
 function switchPanel(id) {
@@ -407,7 +384,19 @@ async function renderHomeCards() {
 async function renderRegistrations() {
   const el = document.getElementById('registrationList');
   el.innerHTML = '<div class="adm-empty"><i class="bi bi-arrow-clockwise"></i> Loading…</div>';
-  const list = await DB.getRegistrations();
+  let list;
+  try {
+    list = await DB.getRegistrations();
+    if (!IS_SUPER) {
+      const depts = await DB.getDepartments();
+      const myNames = depts.filter(d => ME.headOf.includes(d.id)).map(d => d.name);
+      list = list.filter(r => r.deptId ? ME.headOf.includes(r.deptId) : myNames.includes(r.department));
+    }
+  } catch (e) {
+    console.error(e);
+    el.innerHTML = '<div class="adm-empty"><i class="bi bi-exclamation-triangle"></i>Could not load applications.</div>';
+    return;
+  }
   if (!list.length) {
     el.innerHTML = '<div class="adm-empty"><i class="bi bi-person-lines-fill"></i>No applications yet.</div>';
     return;
@@ -417,36 +406,32 @@ async function renderRegistrations() {
       <div class="adm-item-icon">👤</div>
       <div class="adm-item-body">
         <div class="adm-item-title">
-          ${r.fullName}
-          <span class="status-badge status-${r.status}">${r.status}</span>
+          ${escHtml(r.fullName)}
+          <span class="status-badge status-${escHtml(r.status)}">${escHtml(r.status)}</span>
         </div>
-        <div class="adm-item-sub">${r.department} · ${r.phone}</div>
-        <div class="adm-item-sub">${r.email}</div>
-        <div class="adm-item-text">${r.reason}</div>
-        <div class="adm-item-sub" style="margin-top:6px;font-size:11px">Submitted: ${r.submittedAt}</div>
+        <div class="adm-item-sub">${escHtml(r.department)} · ${escHtml(r.phone)}</div>
+        ${r.email ? `<div class="adm-item-sub">${escHtml(r.email)}</div>` : ''}
+        <div class="adm-item-text">${escHtml(r.reason)}</div>
+        ${r.skills ? `<div class="adm-item-sub" style="margin-top:4px">Skills: ${escHtml(r.skills)}</div>` : ''}
+        <div class="adm-item-sub" style="margin-top:6px;font-size:11px">Submitted: ${escHtml(r.submittedAt)}${r.deviceToken ? ' · approving adds the department to their ID' : ''}</div>
       </div>
       <div class="adm-item-actions" style="flex-direction:column">
         ${r.status === 'pending' ? `
           <button class="adm-approve-btn" data-id="${r.id}">Approve</button>
           <button class="adm-reject-btn"  data-id="${r.id}">Reject</button>
         ` : ''}
-        <button class="adm-del-btn" data-id="${r.id}" title="Delete"><i class="bi bi-trash3"></i></button>
+        ${IS_SUPER ? `<button class="adm-del-btn" data-id="${r.id}" title="Delete"><i class="bi bi-trash3"></i></button>` : ''}
       </div>
     </div>
   `).join('');
 
-  el.querySelectorAll('.adm-approve-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      await DB.updateRegistrationStatus(btn.dataset.id, 'approved');
-      renderRegistrations();
-    });
-  });
-  el.querySelectorAll('.adm-reject-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      await DB.updateRegistrationStatus(btn.dataset.id, 'rejected');
-      renderRegistrations();
-    });
-  });
+  const settle = async (id, status) => {
+    await DB.updateRegistrationStatus(id, status);
+    renderRegistrations();
+    if (document.getElementById('peopleList')) renderPeople();
+  };
+  el.querySelectorAll('.adm-approve-btn').forEach(btn => btn.addEventListener('click', () => settle(btn.dataset.id, 'approved')));
+  el.querySelectorAll('.adm-reject-btn').forEach(btn => btn.addEventListener('click', () => settle(btn.dataset.id, 'rejected')));
   el.querySelectorAll('.adm-del-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
@@ -681,6 +666,17 @@ function addMeetingRow(m = {}) {
   document.getElementById('df_meetings').appendChild(row);
 }
 
+function addLinkRow(l = {}) {
+  const row = document.createElement('div');
+  row.className = 'adm-links-row';
+  row.innerHTML = `
+    <input type="text" class="lk-label" placeholder="What is it for? e.g. Choir WhatsApp group" value="${escHtml(l.label)}">
+    <input type="text" class="lk-url"   placeholder="Link, e.g. https://chat.whatsapp.com/…" value="${escHtml(l.url)}">
+    <button type="button" class="adm-del-btn" title="Remove"><i class="bi bi-x-lg"></i></button>`;
+  row.querySelector('button').addEventListener('click', () => row.remove());
+  document.getElementById('df_links').appendChild(row);
+}
+
 function openDeptForm(d) {
   editingDeptId = d ? d.id : null;
   const v = (id, val) => { document.getElementById(id).value = val ?? ''; };
@@ -690,10 +686,13 @@ function openDeptForm(d) {
   v('df_members', d?.members);
   v('df_shortDesc', d?.shortDesc);
   v('df_about', d?.about);
+  v('df_announcement', d?.announcement);
   v('df_requirements', (d?.requirements || []).join('\n'));
   v('df_leader', d?.leader);
   v('df_whatsapp', d?.whatsapp);
   v('df_phone', d?.phone);
+  document.getElementById('df_links').innerHTML = '';
+  (d?.links || []).forEach(addLinkRow);
   document.getElementById('df_meetings').innerHTML = '';
   const meetings = d?.meetings?.length ? d.meetings : (d ? [] : [{}]);
   meetings.forEach(addMeetingRow);
@@ -714,8 +713,9 @@ async function renderDepartments() {
 
   let list;
   try {
-    await DB.seedDepartments();          // first visit: copy defaults so they can be edited
+    if (IS_SUPER) await DB.seedDepartments();   // first visit: copy defaults so they can be edited
     list = await DB.getDepartments();
+    if (!IS_SUPER) list = list.filter(d => ME.headOf.includes(d.id));
   } catch (e) {
     console.error(e);
     el.innerHTML = '<div class="adm-empty"><i class="bi bi-exclamation-triangle"></i>Could not load departments. Check your connection and Firestore rules (the "departments" collection needs read/write access).</div>';
@@ -724,7 +724,7 @@ async function renderDepartments() {
   _deptCache = list;
 
   if (!list.length) {
-    el.innerHTML = '<div class="adm-empty"><i class="bi bi-diagram-3"></i>No departments yet. Add one above.</div>';
+    el.innerHTML = `<div class="adm-empty"><i class="bi bi-diagram-3"></i>${IS_SUPER ? 'No departments yet. Add one above.' : 'You are not the head of any department yet.'}</div>`;
     return;
   }
 
@@ -734,6 +734,8 @@ async function renderDepartments() {
       d.leader ? `<span class="adm-chip"><i class="bi bi-person"></i> ${escHtml(d.leader)}</span>` : '<span class="adm-chip">No leader set</span>',
       `<span class="adm-chip"><i class="bi bi-calendar3"></i> ${(d.meetings || []).length} meeting${(d.meetings || []).length === 1 ? '' : 's'}</span>`,
       `<span class="adm-chip"><i class="bi bi-check2-square"></i> ${(d.requirements || []).length} requirement${(d.requirements || []).length === 1 ? '' : 's'}</span>`,
+      d.announcement ? `<span class="adm-chip"><i class="bi bi-megaphone"></i> Announcement set</span>` : '',
+      (d.links || []).length ? `<span class="adm-chip"><i class="bi bi-link-45deg"></i> ${d.links.length} link${d.links.length === 1 ? '' : 's'}</span>` : '',
     ].join('');
     return `
     <div class="adm-item">
@@ -745,10 +747,10 @@ async function renderDepartments() {
         <div class="adm-dept-chips">${chips}</div>
       </div>
       <div class="adm-item-actions">
-        <button class="adm-move-btn" data-move="up"   data-id="${d.id}" title="Move up"   ${i === 0 ? 'disabled' : ''}><i class="bi bi-arrow-up"></i></button>
-        <button class="adm-move-btn" data-move="down" data-id="${d.id}" title="Move down" ${i === list.length - 1 ? 'disabled' : ''}><i class="bi bi-arrow-down"></i></button>
+        ${IS_SUPER ? `<button class="adm-move-btn" data-move="up"   data-id="${d.id}" title="Move up"   ${i === 0 ? 'disabled' : ''}><i class="bi bi-arrow-up"></i></button>
+        <button class="adm-move-btn" data-move="down" data-id="${d.id}" title="Move down" ${i === list.length - 1 ? 'disabled' : ''}><i class="bi bi-arrow-down"></i></button>` : ''}
         <button class="adm-edit-btn" data-id="${d.id}" title="Edit"><i class="bi bi-pencil"></i></button>
-        <button class="adm-del-btn"  data-id="${d.id}" title="Delete"><i class="bi bi-trash3"></i></button>
+        ${IS_SUPER ? `<button class="adm-del-btn"  data-id="${d.id}" title="Delete"><i class="bi bi-trash3"></i></button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -785,6 +787,7 @@ async function renderDepartments() {
 document.getElementById('addDeptBtn').addEventListener('click', () => openDeptForm(null));
 document.getElementById('deptCancelBtn').addEventListener('click', closeDeptForm);
 document.getElementById('df_addMeeting').addEventListener('click', () => addMeetingRow());
+document.getElementById('df_addLink').addEventListener('click', () => addLinkRow());
 
 document.getElementById('deptSaveBtn').addEventListener('click', async () => {
   const val = id => document.getElementById(id).value.trim();
@@ -800,13 +803,22 @@ document.getElementById('deptSaveBtn').addEventListener('click', async () => {
     }))
     .filter(m => m.day || m.time || m.label);
 
+  if (!editingDeptId && !IS_SUPER) return;
+  if (editingDeptId && !canManage(editingDeptId)) return alert('You can only edit your own department.');
+
+  const links = [...document.querySelectorAll('#df_links .adm-links-row')]
+    .map(r => ({ label: r.querySelector('.lk-label').value.trim(), url: cleanLinkUrl(r.querySelector('.lk-url').value) }))
+    .filter(l => l.url);
+
   const data = {
+    links,
     icon:         val('df_icon') || '⛪',
     name,
     schedule:     val('df_schedule'),
     members:      membersRaw === '' ? '' : Math.max(0, parseInt(membersRaw, 10) || 0),
     shortDesc:    val('df_shortDesc'),
     about:        val('df_about'),
+    announcement: val('df_announcement'),
     meetings,
     requirements: val('df_requirements').split('\n').map(s => s.trim()).filter(Boolean),
     leader:       val('df_leader'),
@@ -829,11 +841,209 @@ document.getElementById('deptSaveBtn').addEventListener('click', async () => {
   }
 });
 
+/* ══════════════════════════════════════════
+   PEOPLE & ACCESS  (devices/IDs)
+══════════════════════════════════════════ */
+let _people = [], _peopleDepts = [], editingPerson = null;
+const asArr = v => Array.isArray(v) ? v : [];
+
+function personRecord(p) {
+  return { ...p, departments: asArr(p.departments), requested: asArr(p.requested), headOf: asArr(p.headOf), superAdmin: !!p.superAdmin };
+}
+
+function contactLinks(p) {
+  const wa = waNumber(p.whatsapp), ph = waNumber(p.phone);
+  return `<div class="adm-person-contacts">
+    ${ph ? `<a href="tel:+${ph}"><i class="bi bi-telephone"></i>${escHtml(p.phone)}</a>` : ''}
+    ${wa ? `<a href="https://wa.me/${wa}" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i>${escHtml(p.whatsapp)}</a>` : ''}
+  </div>`;
+}
+
+async function renderPeople() {
+  const reqEl = document.getElementById('peopleRequests');
+  const el    = document.getElementById('peopleList');
+  el.innerHTML = '<div class="adm-empty"><i class="bi bi-arrow-clockwise"></i> Loading…</div>';
+  try {
+    [_people, _peopleDepts] = await Promise.all([DB.getDevices(), DB.getDepartments()]);
+  } catch (e) {
+    console.error(e);
+    reqEl.innerHTML = '';
+    el.innerHTML = '<div class="adm-empty"><i class="bi bi-exclamation-triangle"></i>Could not load people. Check your Firestore rules (the "devices" collection needs read/write access).</div>';
+    return;
+  }
+  _people = _people.map(personRecord);
+  const dept   = id => _peopleDepts.find(d => d.id === id);
+  const inScope = id => canManage(id) && !!dept(id);
+
+  // head: only people connected to one of my departments
+  const visible = IS_SUPER ? _people
+    : _people.filter(p => [...p.departments, ...p.requested, ...p.headOf].some(id => ME.headOf.includes(id)));
+
+  /* pending department requests */
+  const reqs = [];
+  visible.forEach(p => p.requested.filter(inScope).forEach(id => reqs.push({ p, id })));
+  reqEl.innerHTML = reqs.length ? `
+    <div class="adm-form-section" style="margin:0 0 8px">Pending requests (${reqs.length})</div>
+    ${reqs.map(({ p, id }) => `
+      <div class="adm-req-card"><div class="adm-item">
+        <div class="adm-item-icon">${escHtml(dept(id).icon || '⛪')}</div>
+        <div class="adm-item-body">
+          <div class="adm-item-title">${escHtml(p.name)} <span class="adm-hint">wants to join</span> ${escHtml(dept(id).name)}</div>
+          ${contactLinks(p)}
+        </div>
+        <div class="adm-item-actions" style="flex-direction:column">
+          <button class="adm-approve-btn" data-act="approve" data-t="${p.token || p.id}" data-d="${escHtml(id)}">Approve</button>
+          <button class="adm-reject-btn"  data-act="reject"  data-t="${p.token || p.id}" data-d="${escHtml(id)}">Reject</button>
+        </div>
+      </div></div>`).join('')}` : '';
+
+  reqEl.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', async () => {
+    b.disabled = true;
+    try {
+      if (b.dataset.act === 'approve') await DB.approveDept(b.dataset.t, b.dataset.d);
+      else await DB.rejectDept(b.dataset.t, b.dataset.d);
+    } catch (e) { console.error(e); alert('Could not update. Try again.'); }
+    renderPeople();
+    renderRegistrations();
+  }));
+
+  /* everyone */
+  if (!visible.length) {
+    el.innerHTML = `<div class="adm-empty"><i class="bi bi-people"></i>${IS_SUPER ? 'No devices registered yet.' : 'No members yet.'}</div>`;
+    return;
+  }
+  el.innerHTML = visible.map(p => {
+    const chips = [];
+    if (p.superAdmin) chips.push('<span class="adm-chip adm-chip-super"><i class="bi bi-shield-fill-check"></i> Super Admin</span>');
+    p.headOf.filter(id => dept(id) && (IS_SUPER || inScope(id))).forEach(id => chips.push(`<span class="adm-chip adm-chip-head"><i class="bi bi-star-fill"></i> Head · ${escHtml(dept(id).name)}</span>`));
+    p.departments.filter(id => dept(id) && !p.headOf.includes(id) && (IS_SUPER || inScope(id))).forEach(id => chips.push(`<span class="adm-chip">${escHtml(dept(id).icon || '')} ${escHtml(dept(id).name)}</span>`));
+    if (IS_SUPER && !p.superAdmin && !p.departments.some(id => dept(id))) chips.push('<span class="adm-chip">Non-worker</span>');
+    const me_ = ME && (p.token === ME.token);
+    return `
+    <div class="adm-item">
+      <div class="adm-item-icon">👤</div>
+      <div class="adm-item-body">
+        <div class="adm-item-title">${escHtml(p.name)} ${me_ ? '<span class="status-badge status-approved">This device</span>' : ''}</div>
+        ${contactLinks(p)}
+        <div class="adm-dept-chips">${chips.join('')}</div>
+      </div>
+      <div class="adm-item-actions">
+        <button class="adm-edit-btn" data-edit="${p.token || p.id}" title="${IS_SUPER ? 'Edit' : 'Manage'}"><i class="bi bi-pencil"></i></button>
+        ${IS_SUPER ? `<button class="adm-del-btn" data-del="${p.token || p.id}" title="Remove this device"><i class="bi bi-trash3"></i></button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openPersonForm(_people.find(x => (x.token || x.id) === b.dataset.edit))));
+  el.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    const p = _people.find(x => (x.token || x.id) === b.dataset.del);
+    if (!p) return;
+    if (p.superAdmin && _people.filter(x => x.superAdmin).length <= 1) return alert('This is the only Super Admin. Make someone else a Super Admin first.');
+    showConfirm(`Remove ${p.name}?`, 'Their device loses its ID and department access. They would have to register again.', async () => {
+      await DB.deleteDevice(p.token || p.id);
+      if ((p.token || p.id) === ME.token) { Access.reset(); return; }
+      renderPeople();
+    });
+  }));
+}
+
+function openPersonForm(p) {
+  if (!p) return;
+  editingPerson = p;
+  const f = document.getElementById('personForm');
+  document.getElementById('personFormTitle').textContent = IS_SUPER ? `Edit ${p.name}` : `Manage ${p.name}`;
+  document.getElementById('pf_name').value = p.name || '';
+  document.getElementById('pf_phone').value = p.phone || '';
+  document.getElementById('pf_whatsapp').value = p.whatsapp || '';
+  ['pf_name', 'pf_phone', 'pf_whatsapp'].forEach(id => { document.getElementById(id).disabled = !IS_SUPER; });
+  document.getElementById('pf_superWrap').style.display = IS_SUPER ? '' : 'none';
+  document.getElementById('pf_super').checked = !!p.superAdmin;
+  document.getElementById('personStatus').textContent = '';
+
+  const shown = _peopleDepts.filter(d => canManage(d.id));
+  document.getElementById('pf_depts').innerHTML = shown.map(d => `
+    <div class="pick-row">
+      <label><input type="checkbox" class="pk-m" data-id="${escHtml(d.id)}" ${p.departments.includes(d.id) || p.headOf.includes(d.id) ? 'checked' : ''}> ${escHtml(d.icon || '')} ${escHtml(d.name)}${p.requested.includes(d.id) ? ' <span class="adm-hint">(requested)</span>' : ''}</label>
+      <label class="pick-head"><input type="checkbox" class="pk-h" data-id="${escHtml(d.id)}" ${p.headOf.includes(d.id) ? 'checked' : ''}> Head</label>
+    </div>`).join('') || '<span class="adm-hint">No departments to assign.</span>';
+  const box = document.getElementById('pf_depts');
+  box.querySelectorAll('.pk-h').forEach(h => h.addEventListener('change', () => {
+    if (h.checked) box.querySelector(`.pk-m[data-id="${CSS.escape(h.dataset.id)}"]`).checked = true;
+  }));
+  box.querySelectorAll('.pk-m').forEach(m => m.addEventListener('change', () => {
+    if (!m.checked) box.querySelector(`.pk-h[data-id="${CSS.escape(m.dataset.id)}"]`).checked = false;
+  }));
+  f.style.display = 'block';
+  f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closePersonForm() {
+  document.getElementById('personForm').style.display = 'none';
+  editingPerson = null;
+}
+
+document.getElementById('personCancelBtn').addEventListener('click', closePersonForm);
+document.getElementById('personSaveBtn').addEventListener('click', async () => {
+  const p = editingPerson;
+  if (!p) return;
+  const status = document.getElementById('personStatus');
+  status.textContent = '';
+  const box = document.getElementById('pf_depts');
+  const isMember = id => box.querySelector(`.pk-m[data-id="${CSS.escape(id)}"]`)?.checked;
+  const isHead   = id => box.querySelector(`.pk-h[data-id="${CSS.escape(id)}"]`)?.checked;
+  const shownIds = [...box.querySelectorAll('.pk-m')].map(x => x.dataset.id);
+  const known = new Set(_peopleDepts.map(d => d.id));
+
+  // ids outside the edited set are kept as they were (so a head can't touch other departments)
+  const departments = [...new Set([...p.departments.filter(id => known.has(id) && !shownIds.includes(id)), ...shownIds.filter(isMember)])];
+  const headOf      = [...new Set([...p.headOf.filter(id => known.has(id) && !shownIds.includes(id)), ...shownIds.filter(isHead)])];
+  const requested   = p.requested.filter(id => known.has(id) && !departments.includes(id));
+  const data = { departments, headOf, requested };
+
+  if (IS_SUPER) {
+    const name = document.getElementById('pf_name').value.trim();
+    if (!name) { status.textContent = 'Name cannot be empty.'; return; }
+    data.name = name;
+    data.phone = document.getElementById('pf_phone').value.trim();
+    data.whatsapp = document.getElementById('pf_whatsapp').value.trim();
+    data.superAdmin = document.getElementById('pf_super').checked;
+    if (p.superAdmin && !data.superAdmin) {
+      if (_people.filter(x => x.superAdmin).length <= 1) { status.textContent = 'This is the only Super Admin. Make someone else a Super Admin first.'; return; }
+      if ((p.token || p.id) === ME.token && !confirm('You are removing your own Super Admin access. Continue?')) return;
+    }
+  }
+
+  const btn = document.getElementById('personSaveBtn');
+  btn.disabled = true;
+  try {
+    await DB.updateDevice(p.token || p.id, data);
+    closePersonForm();
+    await renderPeople();
+    renderRegistrations();
+    if ((p.token || p.id) === ME.token) {
+      // editing my own ID: if I lost admin access, reload so the gate re-checks
+      if (!(data.superAdmin ?? ME.superAdmin) && !headOf.length) location.reload();
+    }
+  } catch (e) {
+    console.error(e);
+    status.textContent = 'Could not save. Check your connection and try again.';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 /* ── INIT ── */
-renderPrayers();
-renderSermons();
-renderAnnouncements();
-renderHomeCards();
-renderRegistrations();
-renderDepartments();
-renderAttendanceCheckin();
+Access.requireAdmin().then(me => {
+  ME = me;
+  applyRole();
+  if (IS_SUPER) {
+    renderPrayers();
+    renderSermons();
+    renderAnnouncements();
+    renderHomeCards();
+    renderAttendanceCheckin();
+  }
+  renderRegistrations();
+  renderDepartments();
+  renderPeople();
+});
