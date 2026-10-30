@@ -195,13 +195,12 @@
     <div class="adm-panel-header">
       <div>
         <h1>Attendance</h1>
-        <p>Manage the church roster and check members in each Sunday.</p>
+        <p>Everyone with a registered ID (except Super Admins) is listed. Check them in each Sunday.</p>
       </div>
     </div>
 
     <div class="adm-subtabs">
       <button class="adm-subtab-btn active" data-att-tab="checkin">Check-In</button>
-      <button class="adm-subtab-btn" data-att-tab="roster">Members</button>
       <button class="adm-subtab-btn" data-att-tab="history">History</button>
     </div>
 
@@ -215,20 +214,6 @@
         <div class="adm-att-summary" id="att_checkinSummary"></div>
       </div>
       <div id="attendanceCheckinList" class="adm-list"></div>
-    </div>
-
-    <!-- ROSTER -->
-    <div class="adm-att-view" id="att-roster">
-      <div class="adm-att-toolbar">
-        <div class="adm-field" style="flex:1">
-          <label>Add Member</label>
-          <div style="display:flex; gap:10px">
-            <input type="text" id="att_newMemberName" placeholder="Full name">
-            <button class="adm-add-btn" id="att_addMemberBtn" style="white-space:nowrap"><i class="bi bi-plus-lg"></i> Add</button>
-          </div>
-        </div>
-      </div>
-      <div id="attendanceRosterList" class="adm-list"></div>
     </div>
 
     <!-- HISTORY -->

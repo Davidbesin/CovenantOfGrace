@@ -445,13 +445,17 @@ async function renderRegistrations() {
 
 /* ══════════════════════════════════════════
    ATTENDANCE
+   Uses registered device IDs (People & Access). Super Admins are not tracked.
 ══════════════════════════════════════════ */
-let _rosterCache = [];
-
 function todayISO() {
   const d = new Date();
   const off = d.getTimezoneOffset();
   return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+}
+
+async function attendees() {
+  const all = await DB.getDevices();
+  return all.filter(p => !p.superAdmin);
 }
 
 /* -- sub-tab switching within the Attendance panel -- */
@@ -462,52 +466,8 @@ document.querySelectorAll('.adm-subtab-btn[data-att-tab]').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('att-' + btn.dataset.attTab).classList.add('active');
     if (btn.dataset.attTab === 'history') renderAttendanceHistory();
-    if (btn.dataset.attTab === 'roster') renderAttendanceRoster();
     if (btn.dataset.attTab === 'checkin') renderAttendanceCheckin();
   });
-});
-
-/* -- ROSTER -- */
-async function renderAttendanceRoster() {
-  const el = document.getElementById('attendanceRosterList');
-  el.innerHTML = '<div class="adm-empty"><i class="bi bi-arrow-clockwise"></i> Loading…</div>';
-  const members = await DB.getMembers();
-  _rosterCache = members;
-  if (!members.length) {
-    el.innerHTML = '<div class="adm-empty"><i class="bi bi-people"></i>No members added yet. Add names above.</div>';
-    return;
-  }
-  el.innerHTML = members.map(m => `
-    <div class="adm-item">
-      <div class="adm-item-icon"><i class="bi bi-person-fill" style="color:var(--gold)"></i></div>
-      <div class="adm-item-body"><div class="adm-item-title">${m.name}</div></div>
-      <div class="adm-item-actions">
-        <button class="adm-del-btn" data-id="${m.id}" title="Remove"><i class="bi bi-trash3"></i></button>
-      </div>
-    </div>
-  `).join('');
-
-  el.querySelectorAll('.adm-del-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const m = members.find(x => x.id === btn.dataset.id);
-      showConfirm('Remove member?', `This deletes "${m ? m.name : ''}" from the roster. Their past attendance records will stay in history.`, async () => {
-        await DB.deleteMember(btn.dataset.id);
-        renderAttendanceRoster();
-      });
-    });
-  });
-}
-
-document.getElementById('att_addMemberBtn').addEventListener('click', async () => {
-  const input = document.getElementById('att_newMemberName');
-  const name = input.value.trim();
-  if (!name) return input.focus();
-  await DB.addMember(name);
-  input.value = '';
-  renderAttendanceRoster();
-});
-document.getElementById('att_newMemberName').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('att_addMemberBtn').click();
 });
 
 /* -- CHECK-IN -- */
@@ -522,27 +482,33 @@ async function renderAttendanceCheckin() {
   summaryEl.textContent = '';
 
   const date = attDateInput.value || todayISO();
-  const [members, checkedIn] = await Promise.all([
-    DB.getMembers(),
-    DB.getAttendanceForDate(date),
-  ]);
-  _rosterCache = members;
-
-  if (!members.length) {
-    el.innerHTML = '<div class="adm-empty"><i class="bi bi-people"></i>No members in the roster yet. Add names under the "Members" tab first.</div>';
+  let people, checkedIn;
+  try {
+    [people, checkedIn] = await Promise.all([attendees(), DB.getAttendanceForDate(date)]);
+  } catch (e) {
+    console.error(e);
+    el.innerHTML = '<div class="adm-empty"><i class="bi bi-exclamation-triangle"></i>Could not load attendance.</div>';
     return;
   }
 
-  const presentCount = Object.keys(checkedIn).length;
-  summaryEl.textContent = `${presentCount} of ${members.length} present`;
+  if (!people.length) {
+    el.innerHTML = '<div class="adm-empty"><i class="bi bi-people"></i>No registered IDs yet. People appear here once they register their device in the Workers\' Portal.</div>';
+    return;
+  }
 
-  el.innerHTML = members.map(m => `
+  const presentCount = people.filter(p => checkedIn[p.id]).length;
+  summaryEl.textContent = `${presentCount} of ${people.length} present`;
+
+  el.innerHTML = people.map(p => `
     <div class="adm-item">
       <div class="adm-item-icon"><i class="bi bi-person-fill" style="color:var(--gold)"></i></div>
-      <div class="adm-item-body"><div class="adm-item-title">${m.name}</div></div>
+      <div class="adm-item-body">
+        <div class="adm-item-title">${escHtml(p.name)}</div>
+        ${p.phone ? `<div class="adm-item-sub">${escHtml(p.phone)}</div>` : ''}
+      </div>
       <div class="adm-item-actions">
-        <button class="adm-checkin-toggle ${checkedIn[m.id] ? 'present' : ''}" data-id="${m.id}">
-          ${checkedIn[m.id] ? '✓ Present' : 'Mark Present'}
+        <button class="adm-checkin-toggle ${checkedIn[p.id] ? 'present' : ''}" data-id="${escHtml(p.id)}">
+          ${checkedIn[p.id] ? '✓ Present' : 'Mark Present'}
         </button>
       </div>
     </div>
@@ -550,11 +516,10 @@ async function renderAttendanceCheckin() {
 
   el.querySelectorAll('.adm-checkin-toggle').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const id = btn.dataset.id;
       const nowPresent = !btn.classList.contains('present');
       btn.disabled = true;
-      await DB.setCheckedIn(date, id, nowPresent);
-      btn.disabled = false;
+      try { await DB.setCheckedIn(date, btn.dataset.id, nowPresent); }
+      catch (e) { console.error(e); alert('Could not save. Try again.'); }
       renderAttendanceCheckin();
     });
   });
@@ -565,16 +530,13 @@ async function renderAttendanceHistory() {
   const el = document.getElementById('attendanceHistoryList');
   el.innerHTML = '<div class="adm-empty"><i class="bi bi-arrow-clockwise"></i> Loading…</div>';
 
-  const [members, allAttendance] = await Promise.all([
-    DB.getMembers(),
-    DB.getAllAttendance(),
-  ]);
+  const [people, allAttendance] = await Promise.all([attendees(), DB.getAllAttendance()]);
 
   const dates = Object.keys(allAttendance).sort();
   const totalSessions = dates.length;
 
-  if (!members.length) {
-    el.innerHTML = '<div class="adm-empty"><i class="bi bi-people"></i>No members in the roster yet.</div>';
+  if (!people.length) {
+    el.innerHTML = '<div class="adm-empty"><i class="bi bi-people"></i>No registered IDs yet.</div>';
     return;
   }
   if (!totalSessions) {
@@ -582,10 +544,10 @@ async function renderAttendanceHistory() {
     return;
   }
 
-  const rows = members.map(m => {
-    const timesPresent = dates.filter(d => allAttendance[d][m.id]).length;
+  const rows = people.map(p => {
+    const timesPresent = dates.filter(d => allAttendance[d][p.id]).length;
     const pct = Math.round((timesPresent / totalSessions) * 100);
-    return { name: m.name, timesPresent, pct };
+    return { name: p.name, timesPresent, pct };
   }).sort((a, b) => b.pct - a.pct);
 
   el.innerHTML = `
@@ -597,7 +559,7 @@ async function renderAttendanceHistory() {
         <tbody>
           ${rows.map(r => `
             <tr>
-              <td>${r.name}</td>
+              <td>${escHtml(r.name)}</td>
               <td>${r.timesPresent} / ${totalSessions}</td>
               <td>
                 <div class="adm-history-bar-wrap">
@@ -610,7 +572,7 @@ async function renderAttendanceHistory() {
         </tbody>
       </table>
     </div>
-    <p style="font-size:12px;color:#6b7280;margin-top:14px">Based on ${totalSessions} recorded Sunday${totalSessions === 1 ? '' : 's'}.</p>
+    <p style="font-size:12px;color:#6b7280;margin-top:14px">Based on ${totalSessions} recorded service${totalSessions === 1 ? '' : 's'}. Super Admins are not tracked.</p>
   `;
 }
 
