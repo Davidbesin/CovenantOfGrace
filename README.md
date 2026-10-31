@@ -217,3 +217,11 @@ When deploying, remember that localStorage is browser-specific. For shared real-
 - First Super Admin: if none exists, `admin.html` asks for the setup password (`BOOTSTRAP_PASSWORD` in `access.js`) once. If every admin device is lost, edit `superAdmin: true` on a record in the Firebase console.
 - Add `devices` to your Firestore rules (read/write), like the other collections.
 - This is a soft gate: the data is still readable by anyone with the Firebase config. Real enforcement needs Firebase Auth + security rules.
+
+## QR attendance
+
+- `usher.html` (Ushers' Portal): open to Ushering department members/head and Super Admins. "Start attendance" shows a QR code that changes every 45 seconds, so a screenshot shared on WhatsApp stops working. Keep the page open during sign-in; "Stop attendance" closes scanning.
+- Scanning with the phone camera opens `checkin.html`, which registers the device if needed and records attendance for that service date.
+- Ushers and department heads don't scan. The Usher head ticks the ushers; the Super Admin ticks department heads (Admin → Attendance). Both can change anyone's attendance.
+- Admin → Attendance is visible only to Super Admins and the head of the department whose name contains "Usher".
+- Firestore: the `settings` collection holds `attendanceSession` ({open, date, code, prev}); it must be readable and writable like the other settings.

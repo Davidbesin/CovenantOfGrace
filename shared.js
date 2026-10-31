@@ -502,6 +502,31 @@ const DB = {
   },
 
   /* ══════════════════════════════════════════
+     QR ATTENDANCE SESSION  (settings/attendanceSession)
+     The Ushers' page rotates { date, code, prev }; scanning the QR opens checkin.html with them.
+  ══════════════════════════════════════════ */
+  /* The Ushering department (found by name), or null */
+  async getUsherDept() {
+    const list = await this.getDepartments();
+    return list.find(d => /usher/i.test(d.name || '')) || null;
+  },
+
+  async getAttendanceSession() {
+    const doc = await col('settings').doc('attendanceSession').get();
+    return doc.exists ? doc.data() : null;
+  },
+
+  async setAttendanceSession(data) {
+    await col('settings').doc('attendanceSession').set({
+      ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  },
+
+  async closeAttendanceSession() {
+    await col('settings').doc('attendanceSession').set({ open: false, date: '', code: '', prev: '' });
+  },
+
+  /* ══════════════════════════════════════════
      LIVE SERVICE LINK (Google Meet etc.)
   ══════════════════════════════════════════ */
   async getLiveLink() {
