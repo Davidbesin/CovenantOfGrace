@@ -10,15 +10,22 @@ let IS_SUPER = false;
 const HEAD_PANELS = ['departments', 'registrations', 'people'];
 const canManage = deptId => IS_SUPER || (ME && ME.headOf.includes(deptId));
 
+/* Attendance (the Attendance panel) is for Super Admins and the head of the Ushering department only. */
+let USHER_ID = null;        // id of the Ushering department
+let IS_USHER_HEAD = false;
+const canSeeAttendance = () => IS_SUPER || IS_USHER_HEAD;
+
 function applyRole() {
   IS_SUPER = !!ME.superAdmin;
+  IS_USHER_HEAD = !IS_SUPER && !!USHER_ID && ME.headOf.includes(USHER_ID);
   const who = document.getElementById('whoAmI');
-  const names = ME.superAdmin ? 'Super Admin' : 'Department Head';
+  const names = ME.superAdmin ? 'Super Admin' : (IS_USHER_HEAD ? 'Usher Head' : 'Department Head');
   who.innerHTML = `<strong>${escHtml(ME.name)}</strong>${names}`;
 
   if (!IS_SUPER) {
-    document.querySelectorAll('.adm-nav-btn').forEach(b => { if (!HEAD_PANELS.includes(b.dataset.panel)) b.remove(); });
-    document.querySelectorAll('.adm-panel').forEach(p => { if (!HEAD_PANELS.includes(p.id.replace('panel-', ''))) p.remove(); });
+    const allowed = IS_USHER_HEAD ? [...HEAD_PANELS, 'attendance'] : HEAD_PANELS;
+    document.querySelectorAll('.adm-nav-btn').forEach(b => { if (!allowed.includes(b.dataset.panel)) b.remove(); });
+    document.querySelectorAll('.adm-panel').forEach(p => { if (!allowed.includes(p.id.replace('panel-', ''))) p.remove(); });
     document.getElementById('addDeptBtn').style.display = 'none';
     document.querySelector('#panel-departments .adm-panel-header p').textContent = 'Edit the details, announcement, meeting times and links of the department(s) you lead.';
     document.querySelector('#panel-registrations .adm-panel-header p').textContent = 'Applications to join your department(s).';
@@ -455,8 +462,16 @@ function todayISO() {
 
 async function attendees() {
   const all = await DB.getDevices();
-  return all.filter(p => !p.superAdmin);
+  const rank = r => ({ head: 0, usher: 1, other: 2 }[r]);
+  return all.filter(p => !p.superAdmin).map(p => {
+    const headOf = asArr(p.headOf), depts = asArr(p.departments);
+    const role = headOf.length ? 'head' : (USHER_ID && depts.includes(USHER_ID) ? 'usher' : 'other');
+    return { ...p, role };
+  }).sort((a, b) => rank(a.role) - rank(b.role) || String(a.name).localeCompare(String(b.name)));
 }
+
+/* Department heads are ticked by the Super Admin, ushers by the Usher head. Both can change anyone. */
+const roleNote = r => r === 'head' ? 'Department Head' : r === 'usher' ? 'Usher' : '';
 
 /* -- sub-tab switching within the Attendance panel -- */
 document.querySelectorAll('.adm-subtab-btn[data-att-tab]').forEach(btn => {
@@ -505,6 +520,7 @@ async function renderAttendanceCheckin() {
       <div class="adm-item-body">
         <div class="adm-item-title">${escHtml(p.name)}</div>
         ${p.phone ? `<div class="adm-item-sub">${escHtml(p.phone)}</div>` : ''}
+        ${roleNote(p.role) ? `<div class="adm-dept-chips"><span class="adm-chip ${p.role === 'head' ? 'adm-chip-head' : ''}">${roleNote(p.role)} · ticked manually</span></div>` : ''}
       </div>
       <div class="adm-item-actions">
         <button class="adm-checkin-toggle ${checkedIn[p.id] ? 'present' : ''}" data-id="${escHtml(p.id)}">
@@ -575,6 +591,42 @@ async function renderAttendanceHistory() {
     <p style="font-size:12px;color:#6b7280;margin-top:14px">Based on ${totalSessions} recorded service${totalSessions === 1 ? '' : 's'}. Super Admins are not tracked.</p>
   `;
 }
+
+/* -- EXCEL DOWNLOAD (Super Admin + Usher head; the Attendance panel is only visible to them) -- */
+document.getElementById('attDownloadBtn').addEventListener('click', async () => {
+  if (!canSeeAttendance()) return;
+  if (typeof XLSX === 'undefined') return alert('Excel library did not load. Check your connection and reload.');
+  const btn = document.getElementById('attDownloadBtn');
+  btn.disabled = true;
+  try {
+    const [people, all] = await Promise.all([attendees(), DB.getAllAttendance()]);
+    const dates = Object.keys(all).sort();
+    if (!dates.length) { alert('No attendance has been recorded yet.'); return; }
+
+    const summary = [['Name', 'Phone', 'Role', 'Services present', 'Total services', 'Attendance %']];
+    people.forEach(p => {
+      const n = dates.filter(d => all[d][p.id]).length;
+      summary.push([p.name || '', p.phone || '', roleNote(p.role) || 'Worker / Member', n, dates.length, Math.round((n / dates.length) * 100) + '%']);
+    });
+
+    const byDate = [['Name', 'Phone', 'Role', ...dates]];
+    people.forEach(p => byDate.push([p.name || '', p.phone || '', roleNote(p.role) || 'Worker / Member', ...dates.map(d => all[d][p.id] ? 'Present' : 'Absent')]));
+
+    const wb = XLSX.utils.book_new();
+    const s1 = XLSX.utils.aoa_to_sheet(summary);
+    const s2 = XLSX.utils.aoa_to_sheet(byDate);
+    s1['!cols'] = [{ wch: 26 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 14 }, { wch: 14 }];
+    s2['!cols'] = [{ wch: 26 }, { wch: 16 }, { wch: 18 }, ...dates.map(() => ({ wch: 12 }))];
+    XLSX.utils.book_append_sheet(wb, s1, 'Summary');
+    XLSX.utils.book_append_sheet(wb, s2, 'By date');
+    XLSX.writeFile(wb, `attendance-${todayISO()}.xlsx`);
+  } catch (e) {
+    console.error(e);
+    alert('Could not create the Excel file. Try again.');
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 /* ══════════════════════════════════════════
    LIVE SERVICE LINK
@@ -995,16 +1047,17 @@ document.getElementById('personSaveBtn').addEventListener('click', async () => {
 });
 
 /* ── INIT ── */
-Access.requireAdmin().then(me => {
+Access.requireAdmin().then(async me => {
   ME = me;
+  try { const u = await DB.getUsherDept(); USHER_ID = u ? u.id : null; } catch (e) { console.error(e); }
   applyRole();
   if (IS_SUPER) {
     renderPrayers();
     renderSermons();
     renderAnnouncements();
     renderHomeCards();
-    renderAttendanceCheckin();
   }
+  if (canSeeAttendance()) renderAttendanceCheckin();
   renderRegistrations();
   renderDepartments();
   renderPeople();

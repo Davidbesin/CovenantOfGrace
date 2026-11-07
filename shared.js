@@ -511,6 +511,12 @@ const DB = {
     return list.find(d => /usher/i.test(d.name || '')) || null;
   },
 
+  /* The Prayer department (found by name), or null */
+  async getPrayerDept() {
+    const list = await this.getDepartments();
+    return list.find(d => /prayer/i.test(d.name || '')) || null;
+  },
+
   async getAttendanceSession() {
     const doc = await col('settings').doc('attendanceSession').get();
     return doc.exists ? doc.data() : null;

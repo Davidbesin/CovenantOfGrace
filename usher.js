@@ -5,7 +5,7 @@
 
 const ROTATE_SEC = 45;
 const main = document.getElementById('usherMain');
-let timer = null, countdown = 0, session = null;
+let timer = null, session = null;
 
 const todayISO = () => {
   const d = new Date();
@@ -29,26 +29,61 @@ function showStart(note) {
   document.getElementById('startBtn').addEventListener('click', start);
 }
 
+/* Time the next rotation is due. Based on the clock, not a tick count, so a throttled
+   background timer can't leave the code stale. */
+let nextAt = 0;
+let wakeLock = null;
+let rotating = false;
+
 async function rotate() {
-  const next = { open: true, date: session ? session.date : todayISO(), code: randCode(), prev: session ? session.code : '' };
+  // If the page stayed open past midnight, roll the service date over to today.
+  const date = (session && session.date === todayISO()) ? session.date : todayISO();
+  const next = { open: true, date, code: randCode(), prev: session && session.date === date ? session.code : '' };
   await DB.setAttendanceSession(next);
   session = next;
+  nextAt = Date.now() + ROTATE_SEC * 1000;
   draw();
 }
+
+/* Keep the screen on while the QR is showing */
+async function keepAwake() {
+  try {
+    if ('wakeLock' in navigator && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    }
+  } catch (e) { /* denied or unsupported: the page still works, the screen may just sleep */ }
+}
+function releaseAwake() {
+  try { if (wakeLock) wakeLock.release(); } catch (e) {}
+  wakeLock = null;
+}
+
+/* Coming back from the background (or unlocking the phone): re-lock the screen and refresh the code now */
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible' || !timer || !session) return;
+  keepAwake();
+  if (!rotating) {
+    rotating = true;
+    try { await rotate(); } catch (e) { console.error(e); }
+    rotating = false;
+  }
+});
 
 function draw() {
   const box = document.getElementById('qrBox');
   if (!box) return;
   box.innerHTML = '';
   new QRCode(box, { text: checkinUrl(session), width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M });
-  countdown = ROTATE_SEC;
+  const dateEl = document.getElementById('qrDate');
+  if (dateEl) dateEl.textContent = session.date;
 }
 
 function renderLive() {
   main.innerHTML = `
     <div class="qr-card">
       <h3>Scan to sign in</h3>
-      <p>Service date: <strong>${session.date}</strong>. Scan with your phone camera.</p>
+      <p>Service date: <strong id="qrDate">${session.date}</strong>. Scan with your phone camera.</p>
       <div id="qrBox"></div>
       <div class="qr-bar"><div id="qrBarFill"></div></div>
       <div class="qr-status" id="qrStatus"></div>
@@ -56,15 +91,19 @@ function renderLive() {
     </div>`;
   document.getElementById('stopBtn').addEventListener('click', stop);
   draw();
+  keepAwake();
+  clearInterval(timer);
   timer = setInterval(async () => {
-    countdown--;
+    const left = Math.max(0, Math.ceil((nextAt - Date.now()) / 1000));
     const fill = document.getElementById('qrBarFill');
-    if (fill) fill.style.width = Math.max(0, (countdown / ROTATE_SEC) * 100) + '%';
+    if (fill) fill.style.width = Math.min(100, (left / ROTATE_SEC) * 100) + '%';
     const st = document.getElementById('qrStatus');
-    if (st) st.textContent = `New code in ${Math.max(0, countdown)}s. Keep this page open.`;
-    if (countdown <= 0) {
-      countdown = ROTATE_SEC;           // avoid overlapping rotations
-      try { await rotate(); } catch (e) { console.error(e); if (st) st.textContent = 'Could not refresh the code. Check your connection.'; }
+    if (st) st.textContent = `New code in ${left}s. Screen stays on while this page is open.`;
+    if (left <= 0 && !rotating) {
+      rotating = true;                  // avoid overlapping rotations
+      try { await rotate(); }
+      catch (e) { console.error(e); nextAt = Date.now() + 5000; if (st) st.textContent = 'Could not refresh the code. Check your connection.'; }
+      rotating = false;
     }
   }, 1000);
 }
@@ -84,6 +123,8 @@ async function start() {
 
 async function stop() {
   clearInterval(timer);
+  timer = null;
+  releaseAwake();
   try { await DB.closeAttendanceSession(); } catch (e) { console.error(e); }
   session = null;
   showStart('Attendance is closed. Scans no longer work.');
