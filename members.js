@@ -150,6 +150,7 @@ document.querySelectorAll('.sermon-cat-btn').forEach(btn => {
     _sermonCatFilter = btn.dataset.sermonCat;
     sermonAudioEl.pause();
     renderSermons();
+renderAbout();
   });
 });
 
@@ -168,6 +169,45 @@ if (postPrayerBtn) {
     prayerSuccess.style.display = 'flex';
     setTimeout(() => prayerSuccess.style.display = 'none', 3000);
   });
+}
+
+/* ── ABOUT US ──
+   Text, number tiles, contact and service times are edited in Admin → About Church.
+   The same defaults are already in the HTML, so the section is never empty while this loads. */
+async function renderAbout() {
+  const a = await DB.getAbout();
+  const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  const text = document.getElementById('aboutText');
+  if (text && a.text.trim()) text.textContent = a.text.trim();
+
+  const stats = document.getElementById('aboutStats');
+  if (stats) {
+    const tiles = (a.stats || []).filter(t => t && String(t.num || '').trim());
+    stats.style.display = tiles.length ? '' : 'none';
+    // "400+" -> big number "400" with a gold "+"
+    stats.innerHTML = tiles.map(t => {
+      const m = String(t.num).trim().match(/^(\d[\d,.]*)(.*)$/);
+      const num = m ? `${e(m[1])}${m[2] ? `<span>${e(m[2])}</span>` : ''}` : e(String(t.num).trim());
+      return `<div class="col-6 col-md-3"><div class="about-stat p-3"><div class="stat-num">${num}</div><div class="stat-label mt-1">${e(t.label || '')}</div></div></div>`;
+    }).join('');
+  }
+
+  const contact = document.getElementById('aboutContact');
+  if (contact) {
+    const phoneDigits = String(a.phone || '').replace(/\D/g, '');
+    const rows = [];
+    if (phoneDigits) rows.push(`<a href="tel:+${phoneDigits}"><i class="bi bi-telephone"></i> ${e(a.phone)}</a>`);
+    if (a.email)     rows.push(`<a href="mailto:${e(a.email)}"><i class="bi bi-envelope"></i> ${e(a.email)}</a>`);
+    if (a.address)   rows.push(`<a style="pointer-events:none"><i class="bi bi-geo-alt"></i> ${e(a.address)}</a>`);
+    contact.innerHTML = rows.join('') || '<span class="text-muted small">No contact details yet.</span>';
+  }
+
+  const services = document.getElementById('aboutServices');
+  if (services) {
+    const list = (a.services || []).map(x => String(x).trim()).filter(Boolean);
+    services.innerHTML = list.length ? list.map(x => `<span>${e(x)}</span>`).join('') : '<span>To be announced</span>';
+  }
 }
 
 /* ── DAILY SCRIPTURE ──
@@ -233,3 +273,4 @@ loadDailyVerse();
 renderHomeCards();
 renderAnnouncements();
 renderSermons();
+renderAbout();

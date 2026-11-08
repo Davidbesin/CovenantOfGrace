@@ -135,7 +135,50 @@ const DEFAULT_DEPARTMENTS = [
   },
 ];
 
+/* ── Default "About Us" content (used until the admin edits it in Admin → About Church) ── */
+const DEFAULT_ABOUT = {
+  text: "To the glory of the Almighty God, The Redeemed Christian Church of God, Covenant of Grace Youth Church, was dedicated on the 4th day of October 2015, by Pastor Gradebo Lawal, SATGO Prayer PIC Region 12. We are a family — rooted in Scripture, led by the Spirit, and opened to all. The current head of the Church by the grace of God is; Pst Dr. OluKunle Makanjuola.",
+  stats: [
+    { num: "12+",  label: "Years established" },
+    { num: "400+", label: "Congregation" },
+    { num: "2",    label: "Cell groups" },
+    { num: "3",    label: "Weekly services" },
+  ],
+  phone: "+2348153211248",
+  email: "",
+  address: "",
+  services: ["Sunday Worship — 8:00 AM", "Wednesdays — 6:00 PM", "Thursdays — 6:00 PM"],
+};
+
 const DB = {
+
+  /* ══════════════════════════════════════════
+     ABOUT US  (settings/about)
+  ══════════════════════════════════════════ */
+  /* Saved values win; anything never saved falls back to DEFAULT_ABOUT. */
+  async getAbout() {
+    try {
+      const doc = await col('settings').doc('about').get();
+      const s = doc.exists ? doc.data() : {};
+      return {
+        text:     typeof s.text === 'string' ? s.text : DEFAULT_ABOUT.text,
+        stats:    Array.isArray(s.stats) ? s.stats : DEFAULT_ABOUT.stats,
+        phone:    typeof s.phone === 'string' ? s.phone : DEFAULT_ABOUT.phone,
+        email:    s.email   || '',
+        address:  s.address || '',
+        services: Array.isArray(s.services) ? s.services : DEFAULT_ABOUT.services,
+      };
+    } catch (e) {
+      console.warn('Could not load About content, using defaults', e);
+      return { ...DEFAULT_ABOUT };
+    }
+  },
+
+  async setAbout(data) {
+    await col('settings').doc('about').set({
+      ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  },
 
   /* ══════════════════════════════════════════
      PRAYERS

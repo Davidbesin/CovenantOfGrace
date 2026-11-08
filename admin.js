@@ -15,6 +15,37 @@ let USHER_ID = null;        // id of the Ushering department
 let IS_USHER_HEAD = false;
 const canSeeAttendance = () => IS_SUPER || IS_USHER_HEAD;
 
+/* Sidebar + mobile menu are both built from this one list. */
+const NAV = [
+  { group: 'Church content', items: [
+    ['announcements', 'megaphone',         'Announcements'],
+    ['sermons',       'mic',               'Sermons'],
+    ['homecards',     'house-door',        'Home Cards'],
+    ['live',          'camera-video',      'Live Service'],
+    ['about',         'building',          'About Church'],
+  ]},
+  { group: 'Services & care', items: [
+    ['attendance',    'clipboard2-check',  'Attendance'],
+    ['prayers',       'hands',             'Prayer Requests'],
+  ]},
+  { group: 'Workers', items: [
+    ['departments',   'diagram-3',         'Departments'],
+    ['registrations', 'person-lines-fill', 'Worker Applications'],
+    ['people',        'people',            'People & Access'],
+  ]},
+];
+
+function buildNav(allowed) {
+  const html = NAV.map(g => {
+    const items = g.items.filter(([id]) => allowed.includes(id));
+    if (!items.length) return '';
+    return `<div class="adm-nav-group">${escHtml(g.group)}</div>` +
+      items.map(([id, icon, label]) => `<button class="adm-nav-btn" data-panel="${id}"><i class="bi bi-${icon}"></i> ${escHtml(label)}</button>`).join('');
+  }).join('');
+  ['admNav', 'mobileDrawer'].forEach(id => { document.getElementById(id).innerHTML = html; });
+  document.querySelectorAll('.adm-nav-btn').forEach(btn => btn.addEventListener('click', () => switchPanel(btn.dataset.panel)));
+}
+
 function applyRole() {
   IS_SUPER = !!ME.superAdmin;
   IS_USHER_HEAD = !IS_SUPER && !!USHER_ID && ME.headOf.includes(USHER_ID);
@@ -22,18 +53,20 @@ function applyRole() {
   const names = ME.superAdmin ? 'Super Admin' : (IS_USHER_HEAD ? 'Usher Head' : 'Department Head');
   who.innerHTML = `<strong>${escHtml(ME.name)}</strong>${names}`;
 
+  const allPanels = NAV.flatMap(g => g.items.map(i => i[0]));
+  const allowed = IS_SUPER ? allPanels : (IS_USHER_HEAD ? [...HEAD_PANELS, 'attendance'] : HEAD_PANELS);
+  buildNav(allowed);
+  document.querySelectorAll('.adm-panel').forEach(p => { if (!allowed.includes(p.id.replace('panel-', ''))) p.remove(); });
+
   if (!IS_SUPER) {
-    const allowed = IS_USHER_HEAD ? [...HEAD_PANELS, 'attendance'] : HEAD_PANELS;
-    document.querySelectorAll('.adm-nav-btn').forEach(b => { if (!allowed.includes(b.dataset.panel)) b.remove(); });
-    document.querySelectorAll('.adm-panel').forEach(p => { if (!allowed.includes(p.id.replace('panel-', ''))) p.remove(); });
     document.getElementById('addDeptBtn').style.display = 'none';
-    document.querySelector('#panel-departments .adm-panel-header p').textContent = 'Edit the details, announcement, meeting times and links of the department(s) you lead.';
+    document.querySelector('#panel-departments .adm-panel-header p').textContent = 'Edit the details, announcement, meeting times and links of the department(s) you lead. You can only edit your own.';
     document.querySelector('#panel-registrations .adm-panel-header p').textContent = 'Applications to join your department(s).';
     document.getElementById('peopleSub').textContent = 'Members and requests for the department(s) you lead. Approve requests, or remove or promote members.';
     document.getElementById('peopleAllLabel').textContent = 'Members';
     document.querySelector('.adm-mobile-title').textContent = 'Department Head';
-    switchPanel('people');
   }
+  switchPanel(IS_SUPER ? 'announcements' : 'people');
 }
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -42,16 +75,15 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 
 /* ── PANEL SWITCHING ── */
 function switchPanel(id) {
+  const panel = document.getElementById('panel-' + id);
+  if (!panel) return;
   document.querySelectorAll('.adm-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.adm-nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('panel-' + id).classList.add('active');
+  panel.classList.add('active');
   document.querySelectorAll(`.adm-nav-btn[data-panel="${id}"]`).forEach(b => b.classList.add('active'));
   document.getElementById('mobileDrawer').classList.remove('open');
+  document.querySelector('.adm-main').scrollTop = 0;
 }
-
-document.querySelectorAll('.adm-nav-btn').forEach(btn => {
-  btn.addEventListener('click', () => switchPanel(btn.dataset.panel));
-});
 
 document.getElementById('mobileMenuBtn').addEventListener('click', () => {
   document.getElementById('mobileDrawer').classList.toggle('open');
@@ -386,6 +418,77 @@ async function renderHomeCards() {
 }
 
 /* ══════════════════════════════════════════
+   ABOUT CHURCH  (Super Admin only)
+══════════════════════════════════════════ */
+const MAX_STATS = 6;
+
+function addStatRow(t = {}) {
+  const box = document.getElementById('ab_stats');
+  if (box.children.length >= MAX_STATS) return;
+  const row = document.createElement('div');
+  row.className = 'adm-links-row';
+  row.innerHTML = `
+    <input type="text" class="st-num"   placeholder="Number, e.g. 400+" value="${escHtml(t.num)}">
+    <input type="text" class="st-label" placeholder="Label, e.g. Congregation" value="${escHtml(t.label)}">
+    <button type="button" class="adm-del-btn" title="Remove"><i class="bi bi-x-lg"></i></button>`;
+  row.querySelector('button').addEventListener('click', () => { row.remove(); syncStatBtn(); });
+  box.appendChild(row);
+  syncStatBtn();
+}
+function syncStatBtn() {
+  document.getElementById('ab_addStat').style.display = document.getElementById('ab_stats').children.length >= MAX_STATS ? 'none' : '';
+}
+
+async function renderAbout() {
+  const status = document.getElementById('aboutStatus');
+  status.textContent = '';
+  const a = await DB.getAbout();
+  document.getElementById('ab_text').value     = a.text || '';
+  document.getElementById('ab_phone').value    = a.phone || '';
+  document.getElementById('ab_email').value    = a.email || '';
+  document.getElementById('ab_address').value  = a.address || '';
+  document.getElementById('ab_services').value = (a.services || []).join('\n');
+  document.getElementById('ab_stats').innerHTML = '';
+  (a.stats || []).forEach(addStatRow);
+  syncStatBtn();
+}
+
+document.getElementById('ab_addStat').addEventListener('click', () => addStatRow());
+document.getElementById('aboutResetBtn').addEventListener('click', renderAbout);
+document.getElementById('aboutSaveBtn').addEventListener('click', async () => {
+  if (!IS_SUPER) return;
+  const status = document.getElementById('aboutStatus');
+  const val = id => document.getElementById(id).value.trim();
+  const text = val('ab_text');
+  if (!text) { status.style.color = '#ef4444'; status.textContent = 'The About text cannot be empty.'; return; }
+
+  const data = {
+    text,
+    stats: [...document.querySelectorAll('#ab_stats .adm-links-row')]
+      .map(r => ({ num: r.querySelector('.st-num').value.trim(), label: r.querySelector('.st-label').value.trim() }))
+      .filter(t => t.num),
+    phone:    val('ab_phone'),
+    email:    val('ab_email'),
+    address:  val('ab_address'),
+    services: val('ab_services').split('\n').map(x => x.trim()).filter(Boolean),
+  };
+
+  const btn = document.getElementById('aboutSaveBtn');
+  btn.disabled = true;
+  try {
+    await DB.setAbout(data);
+    status.style.color = '#166534';
+    status.textContent = '✓ Saved. Members will see this now.';
+  } catch (e) {
+    console.error(e);
+    status.style.color = '#ef4444';
+    status.textContent = 'Could not save. Check your connection and Firestore rules (the "settings" collection).';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ══════════════════════════════════════════
    WORKER REGISTRATIONS
 ══════════════════════════════════════════ */
 async function renderRegistrations() {
@@ -696,6 +799,8 @@ function openDeptForm(d) {
   const v = (id, val) => { document.getElementById(id).value = val ?? ''; };
   v('df_icon', d?.icon);
   v('df_name', d?.name);
+  // Only a Super Admin can rename a department (Usher/Prayer access is found by name)
+  document.getElementById('df_name').disabled = !IS_SUPER;
   v('df_schedule', d?.schedule);
   v('df_members', d?.members);
   v('df_shortDesc', d?.shortDesc);
@@ -736,6 +841,7 @@ async function renderDepartments() {
     return;
   }
   _deptCache = list;
+  openRequestedDept();
 
   if (!list.length) {
     el.innerHTML = `<div class="adm-empty"><i class="bi bi-diagram-3"></i>${IS_SUPER ? 'No departments yet. Add one above.' : 'You are not the head of any department yet.'}</div>`;
@@ -798,6 +904,20 @@ async function renderDepartments() {
   });
 }
 
+/* Link from the Workers' Portal card ("Edit department"): admin.html?edit=<deptId>.
+   Only opens if this person may manage that department (Super Admin, or that department's head). */
+let _wantedDept = new URLSearchParams(location.search).get('edit');
+function openRequestedDept() {
+  if (!_wantedDept) return;
+  const id = _wantedDept;
+  _wantedDept = null;
+  history.replaceState(null, '', location.pathname);
+  const d = _deptCache.find(x => x.id === id);
+  if (!d || !canManage(id)) return;
+  switchPanel('departments');
+  openDeptForm(d);
+}
+
 document.getElementById('addDeptBtn').addEventListener('click', () => openDeptForm(null));
 document.getElementById('deptCancelBtn').addEventListener('click', closeDeptForm);
 document.getElementById('df_addMeeting').addEventListener('click', () => addMeetingRow());
@@ -805,7 +925,11 @@ document.getElementById('df_addLink').addEventListener('click', () => addLinkRow
 
 document.getElementById('deptSaveBtn').addEventListener('click', async () => {
   const val = id => document.getElementById(id).value.trim();
-  const name = val('df_name');
+  if (!editingDeptId && !IS_SUPER) return;
+  if (editingDeptId && !canManage(editingDeptId)) return alert('You can only edit your own department.');
+  const current = _deptCache.find(x => x.id === editingDeptId);
+  // A head's rename attempt is ignored: the saved name is kept
+  const name = IS_SUPER ? val('df_name') : (current ? current.name : '');
   if (!name) return alert('Please enter the department name.');
 
   const membersRaw = val('df_members');
@@ -816,9 +940,6 @@ document.getElementById('deptSaveBtn').addEventListener('click', async () => {
       label: r.querySelector('.mt-label').value.trim(),
     }))
     .filter(m => m.day || m.time || m.label);
-
-  if (!editingDeptId && !IS_SUPER) return;
-  if (editingDeptId && !canManage(editingDeptId)) return alert('You can only edit your own department.');
 
   const links = [...document.querySelectorAll('#df_links .adm-links-row')]
     .map(r => ({ label: r.querySelector('.lk-label').value.trim(), url: cleanLinkUrl(r.querySelector('.lk-url').value) }))
@@ -1056,6 +1177,7 @@ Access.requireAdmin().then(async me => {
     renderSermons();
     renderAnnouncements();
     renderHomeCards();
+    renderAbout();
   }
   if (canSeeAttendance()) renderAttendanceCheckin();
   renderRegistrations();

@@ -26,17 +26,7 @@
     </div>
   </div>
 
-  <nav class="adm-nav">
-    <button class="adm-nav-btn" data-panel="live"><i class="bi bi-camera-video"></i> Live Service</button>
-    <button class="adm-nav-btn active" data-panel="prayers"><i class="bi bi-hands"></i> Prayer Requests</button>
-    <button class="adm-nav-btn" data-panel="sermons"><i class="bi bi-mic"></i> Sermons</button>
-    <button class="adm-nav-btn" data-panel="announcements"><i class="bi bi-megaphone"></i> Announcements</button>
-    <button class="adm-nav-btn" data-panel="homecards"><i class="bi bi-house-door"></i> Home Cards</button>
-    <button class="adm-nav-btn" data-panel="departments"><i class="bi bi-diagram-3"></i> Departments</button>
-    <button class="adm-nav-btn" data-panel="registrations"><i class="bi bi-person-lines-fill"></i> Worker Applications</button>
-    <button class="adm-nav-btn" data-panel="attendance"><i class="bi bi-clipboard2-check"></i> Attendance</button>
-    <button class="adm-nav-btn" data-panel="people"><i class="bi bi-people"></i> People &amp; Access</button>
-  </nav>
+  <nav class="adm-nav" id="admNav"></nav>
 
   <div class="adm-sidebar-foot">
     <div class="adm-whoami" id="whoAmI"></div>
@@ -55,17 +45,7 @@
   </div>
 
   <!-- MOBILE NAV DRAWER -->
-  <div class="adm-mobile-drawer" id="mobileDrawer">
-    <button class="adm-nav-btn" data-panel="live"><i class="bi bi-camera-video"></i> Live Service</button>
-    <button class="adm-nav-btn active" data-panel="prayers"><i class="bi bi-hands"></i> Prayer Requests</button>
-    <button class="adm-nav-btn" data-panel="sermons"><i class="bi bi-mic"></i> Sermons</button>
-    <button class="adm-nav-btn" data-panel="announcements"><i class="bi bi-megaphone"></i> Announcements</button>
-    <button class="adm-nav-btn" data-panel="homecards"><i class="bi bi-house-door"></i> Home Cards</button>
-    <button class="adm-nav-btn" data-panel="departments"><i class="bi bi-diagram-3"></i> Departments</button>
-    <button class="adm-nav-btn" data-panel="registrations"><i class="bi bi-person-lines-fill"></i> Worker Applications</button>
-    <button class="adm-nav-btn" data-panel="attendance"><i class="bi bi-clipboard2-check"></i> Attendance</button>
-    <button class="adm-nav-btn" data-panel="people"><i class="bi bi-people"></i> People &amp; Access</button>
-  </div>
+  <div class="adm-mobile-drawer" id="mobileDrawer"></div>
 
   <!-- PANEL: LIVE -->
   <div class="adm-panel" id="panel-live">
@@ -91,7 +71,7 @@
   </div>
 
   <!-- PANEL: PRAYERS -->
-  <div class="adm-panel active" id="panel-prayers">
+  <div class="adm-panel" id="panel-prayers">
     <div class="adm-panel-header">
       <div>
         <h1>Prayer Requests</h1>
@@ -188,6 +168,55 @@
       </div>
     </div>
     <div id="homeCardList" class="adm-list"></div>
+  </div>
+
+  <!-- PANEL: ABOUT CHURCH -->
+  <div class="adm-panel" id="panel-about">
+    <div class="adm-panel-header">
+      <div>
+        <h1>About Church</h1>
+        <p>Edit the "About Us" section of the Members' Portal: the story, number tiles, contact details and service times.</p>
+      </div>
+    </div>
+
+    <div class="adm-form-card">
+      <div class="adm-form-section">Our story</div>
+      <div class="adm-fields">
+        <div class="adm-field adm-field-full">
+          <label>About text <span class="adm-hint">— press Enter for a new paragraph</span></label>
+          <textarea id="ab_text" rows="7" placeholder="Tell members about the church…"></textarea>
+        </div>
+      </div>
+
+      <div class="adm-form-section">Number tiles <span class="adm-hint" style="text-transform:none;letter-spacing:0">— e.g. 400+ / Congregation. Up to 6.</span></div>
+      <div class="adm-fields">
+        <div class="adm-field adm-field-full">
+          <div id="ab_stats"></div>
+          <button type="button" class="adm-link-btn" id="ab_addStat"><i class="bi bi-plus-circle"></i> Add tile</button>
+        </div>
+      </div>
+
+      <div class="adm-form-section">Contact</div>
+      <div class="adm-fields">
+        <div class="adm-field"><label>Phone number</label><input type="tel" id="ab_phone" placeholder="e.g. +2348153211248"></div>
+        <div class="adm-field"><label>Email <span class="adm-hint">— optional</span></label><input type="email" id="ab_email" placeholder="e.g. info@church.org"></div>
+        <div class="adm-field adm-field-full"><label>Address <span class="adm-hint">— optional</span></label><input type="text" id="ab_address" placeholder="Where the church meets"></div>
+      </div>
+
+      <div class="adm-form-section">Service times</div>
+      <div class="adm-fields">
+        <div class="adm-field adm-field-full">
+          <label>One per line</label>
+          <textarea id="ab_services" rows="4" placeholder="Sunday Worship — 8:00 AM&#10;Wednesdays — 6:00 PM"></textarea>
+        </div>
+      </div>
+
+      <div class="adm-form-actions">
+        <button class="adm-cancel-btn" id="aboutResetBtn">Reload saved</button>
+        <button class="adm-save-btn" id="aboutSaveBtn">Save About</button>
+      </div>
+      <p id="aboutStatus" style="font-size:12.5px;color:#6b7280;margin-top:12px"></p>
+    </div>
   </div>
 
   <!-- PANEL: ATTENDANCE -->

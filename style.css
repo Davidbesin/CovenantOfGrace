@@ -324,3 +324,12 @@ body {
 .dept-link .bi-youtube { color: #ef4444; }
 .dept-link:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
 .dept-link:hover i { color: var(--gold-light); }
+
+/* Edit shortcut shown only to a department's own head (and Super Admins) */
+.dept-edit-btn {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 14px;
+  padding: 9px 16px; border-radius: 10px; text-decoration: none;
+  font-size: 13px; font-weight: 600; color: var(--navy, #0b1f4b);
+  background: rgba(200,134,10,.12); border: 1px solid rgba(200,134,10,.3);
+}
+.dept-edit-btn:hover { background: rgba(200,134,10,.2); color: var(--navy, #0b1f4b); }

@@ -640,3 +640,16 @@ body {
 .adm-links-row input { min-width: 0; }
 .adm-links-row .adm-del-btn { width: 38px; height: 38px; }
 @media (max-width: 640px) { .adm-links-row { grid-template-columns: 1fr auto; } .adm-links-row .lk-url { grid-column: 1 / -1; grid-row: 2; } }
+
+/* ── NAV GROUPS (sidebar + mobile menu) ── */
+.adm-nav-group {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: rgba(255,255,255,.35); padding: 16px 13px 6px;
+}
+.adm-nav-group:first-child { padding-top: 4px; }
+.adm-nav { gap: 2px; }
+.adm-mobile-drawer .adm-nav-group { padding: 12px 10px 4px; }
+.adm-mobile-drawer .adm-nav-group:first-child { padding-top: 2px; }
+
+/* keep long lists readable on wide screens */
+.adm-panel { max-width: 980px; }

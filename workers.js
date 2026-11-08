@@ -13,6 +13,8 @@ const digits = s => String(s ?? '').replace(/\D/g, '');
    department, its heads, and Super Admins. */
 const isMember  = d => !!me && (me.superAdmin || me.departments.includes(d.id) || me.headOf.includes(d.id));
 const isPending = d => !!me && me.requested.includes(d.id);
+/* Only a Super Admin, or the head of THIS department, gets the edit shortcut on its card. */
+const canEdit   = d => !!me && (me.superAdmin || me.headOf.includes(d.id));
 
 /* ── RENDER DEPARTMENTS ── */
 function renderDepartments() {
@@ -76,6 +78,10 @@ function renderDepartments() {
       ? '<span class="dept-badge dept-badge-member"><i class="bi bi-check-circle-fill"></i> Member</span>'
       : (isPending(dept) ? '<span class="dept-badge dept-badge-pending"><i class="bi bi-hourglass-split"></i> Request pending</span>' : '');
 
+    const editBtn = canEdit(dept)
+      ? `<a class="dept-edit-btn" href="admin.html?edit=${encodeURIComponent(dept.id)}"><i class="bi bi-pencil-square"></i> Edit this department</a>`
+      : '';
+
     const joinBtn = member
       ? ''
       : `<button class="join-btn" data-dept-index="${i}">
@@ -128,6 +134,7 @@ function renderDepartments() {
 
           ${linksBlock}
 
+          ${editBtn}
           ${joinBtn}
         </div>
       </div>
