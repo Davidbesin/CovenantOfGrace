@@ -26,6 +26,7 @@
   <nav class="mobile-subnav d-flex">
     <a href="#home" class="active"><i class="bi bi-house-door"></i> Home</a>
     <a href="live.html"><i class="bi bi-camera-video"></i> Live</a>
+    <a href="scan.html"><i class="bi bi-qr-code-scan"></i> Scan</a>
     <a href="#announcements"><i class="bi bi-megaphone"></i> Announcements</a>
     <a href="#sermons"><i class="bi bi-mic"></i> Sermons</a>
     <a href="#prayer"><i class="bi bi-hands"></i> Prayer</a>
@@ -57,6 +58,7 @@
       <nav class="d-flex flex-column gap-1">
         <a href="#home"          class="nav-link-item active"><i class="bi bi-house-door"></i> Home</a>
         <a href="live.html"      class="nav-link-item"><i class="bi bi-camera-video"></i> Live Service</a>
+        <a href="scan.html"      class="nav-link-item"><i class="bi bi-qr-code-scan"></i> Scan Attendance</a>
         <a href="#announcements" class="nav-link-item"><i class="bi bi-megaphone"></i> Announcements</a>
         <a href="#sermons"       class="nav-link-item"><i class="bi bi-mic"></i> Sermons</a>
         <a href="#prayer"        class="nav-link-item"><i class="bi bi-hands"></i> Prayer Requests</a>
@@ -84,6 +86,10 @@
       </div>
       <a href="live.html" class="d-flex align-items-center justify-content-between text-decoration-none p-3 mb-4 rounded-4" style="background:var(--gold-glow);border:1px solid rgba(200,134,10,.3);color:var(--navy)">
         <span class="fw-semibold"><i class="bi bi-camera-video-fill me-2" style="color:var(--gold)"></i> Join the live service</span>
+        <i class="bi bi-arrow-right" style="color:var(--gold)"></i>
+      </a>
+      <a href="scan.html" class="d-flex align-items-center justify-content-between text-decoration-none p-3 mb-4 rounded-4" style="background:#fff;border:1px solid rgba(11,31,75,.12);color:var(--navy)">
+        <span class="fw-semibold"><i class="bi bi-qr-code-scan me-2" style="color:var(--gold)"></i> Scan to mark your attendance</span>
         <i class="bi bi-arrow-right" style="color:var(--gold)"></i>
       </a>
       <div class="row g-3" id="homeCardsContainer"></div>
@@ -136,10 +142,8 @@
     <section id="about" class="panel p-4 p-lg-5" style="background:var(--surface)">
       <h2 class="section-title mb-4">About Us</h2>
       <div class="about-card card p-4 border-0 shadow-sm mb-4">
-        <p class="text-muted mb-4" style="font-size:14.5px;line-height:1.75;max-width:620px">To the glory of the Almighty God, The Redeemed Christian Church of God,
-           Covenant of Grace Youth Church, was dedicated on the 4th day of October 2015, by Pastor Gradebo Lawal, SATGO Prayer PIC Region 12. We are a family — rooted in Scripture,
-           led by the Spirit, and opened to all. The current head of the Church by the grace of God is; Pst Dr. OluKunle Makanjuola.</p>
-        <div class="row g-3">
+        <p class="text-muted mb-4" id="aboutText" style="font-size:14.5px;line-height:1.75;max-width:620px;white-space:pre-line">To the glory of the Almighty God, The Redeemed Christian Church of God, Covenant of Grace Youth Church, was dedicated on the 4th day of October 2015, by Pastor Gradebo Lawal, SATGO Prayer PIC Region 12. We are a family — rooted in Scripture, led by the Spirit, and opened to all. The current head of the Church by the grace of God is; Pst Dr. OluKunle Makanjuola.</p>
+        <div class="row g-3" id="aboutStats">
           <div class="col-6 col-md-3"><div class="about-stat p-3"><div class="stat-num">12<span>+</span></div><div class="stat-label mt-1">Years established</div></div></div>
           <div class="col-6 col-md-3"><div class="about-stat p-3"><div class="stat-num">400<span>+</span></div><div class="stat-label mt-1">Congregation</div></div></div>
           <div class="col-6 col-md-3"><div class="about-stat p-3"><div class="stat-num">2</div><div class="stat-label mt-1">Cell groups</div></div></div>
@@ -150,13 +154,13 @@
         <div class="row g-4">
           <div class="col-md-6">
             <p class="fw-semibold small mb-3">Contact Us</p>
-            <div class="footer-contact d-flex flex-column gap-2">
-              <a href="tel:+2340000000000"><i class="bi bi-telephone"></i> +2348153211248</a>
+            <div class="footer-contact d-flex flex-column gap-2" id="aboutContact">
+              <a href="tel:+2348153211248"><i class="bi bi-telephone"></i> +2348153211248</a>
             </div>
           </div>
           <div class="col-md-6">
             <p class="fw-semibold small mb-3">Service Times</p>
-            <div class="d-flex flex-column gap-2 text-muted small">
+            <div class="d-flex flex-column gap-2 text-muted small" id="aboutServices">
               <span>Sunday Worship — 8:00 AM </span>
               <span>Wednesdays — 6:00 PM</span>
               <span>Thursdays — 6:00 PM</span>

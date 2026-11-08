@@ -105,6 +105,17 @@ Open **`admin.html`** in a browser. No login is required (open access mode).
 - Edit the text content directly in the text area under each card
 - Click **Save** — changes appear immediately on the Members page
 
+### About Church (Super Admin only)
+- Edits the "About Us" section of the Members' Portal: the story, up to 6 number tiles (e.g. `400+` / Congregation), phone, optional email and address, and service times (one per line)
+- Click **Save About**; members see it straight away. Stored in Firestore at `settings/about`
+
+### Admin layout
+- The sidebar is grouped: **Church content**, **Services & care**, **Workers**. Department heads only see the Workers group (plus Attendance for the Usher head)
+
+### Editing a department
+- A Super Admin edits any department. A department head edits **only their own** (Admin → Departments, or the **Edit this department** button on their card in the Workers' Portal)
+- Only a Super Admin can rename a department, because Usher/Prayer access is found by the department name
+
 ### Worker Applications
 - Submitted when someone fills in the registration form on the Workers portal
 - Status starts as **pending**
@@ -223,5 +234,6 @@ When deploying, remember that localStorage is browser-specific. For shared real-
 - `usher.html` (Ushers' Portal): open to Ushering department members/head and Super Admins. "Start attendance" shows a QR code that changes every 45 seconds, so a screenshot shared on WhatsApp stops working. Keep the page open during sign-in; "Stop attendance" closes scanning.
 - Scanning with the phone camera opens `checkin.html`, which registers the device if needed and records attendance for that service date.
 - Ushers and department heads don't scan. The Usher head ticks the ushers; the Super Admin ticks department heads (Admin → Attendance). Both can change anyone's attendance.
+- Workers and members can scan from inside the site: **Scan Attendance** (`scan.html`) is linked from the home screen, the Members' Portal and the Workers' Portal. It opens the camera, reads the usher's QR, and forwards to `checkin.html`. Scanning with the phone's own camera app works too.
 - Admin → Attendance is visible only to Super Admins and the head of the department whose name contains "Usher".
 - Firestore: the `settings` collection holds `attendanceSession` ({open, date, code, prev}); it must be readable and writable like the other settings.

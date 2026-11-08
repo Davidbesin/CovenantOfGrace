@@ -333,3 +333,13 @@ body {
   background: rgba(200,134,10,.12); border: 1px solid rgba(200,134,10,.3);
 }
 .dept-edit-btn:hover { background: rgba(200,134,10,.2); color: var(--navy, #0b1f4b); }
+
+/* Attendance scan shortcut (Workers' Portal) */
+.scan-cta {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 14px 16px; margin-bottom: 16px; border-radius: 14px; text-decoration: none;
+  background: rgba(200,134,10,.12); border: 1px solid rgba(200,134,10,.3);
+  color: var(--navy, #0b1f4b); font-weight: 600; font-size: 14px;
+}
+.scan-cta i { color: var(--gold, #c8860a); }
+.scan-cta:hover { background: rgba(200,134,10,.2); color: var(--navy, #0b1f4b); }
