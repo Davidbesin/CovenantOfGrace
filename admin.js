@@ -1060,6 +1060,7 @@ async function renderPeople() {
       <div class="adm-item-body">
         <div class="adm-item-title">${escHtml(p.name)} ${me_ ? '<span class="status-badge status-approved">This device</span>' : ''}</div>
         ${contactLinks(p)}
+        ${p.dob ? `<div class="adm-item-sub"><i class="bi bi-cake2"></i> ${escHtml(new Date(p.dob + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }))}</div>` : ''}
         <div class="adm-dept-chips">${chips.join('')}</div>
       </div>
       <div class="adm-item-actions">
@@ -1090,7 +1091,8 @@ function openPersonForm(p) {
   document.getElementById('pf_name').value = p.name || '';
   document.getElementById('pf_phone').value = p.phone || '';
   document.getElementById('pf_whatsapp').value = p.whatsapp || '';
-  ['pf_name', 'pf_phone', 'pf_whatsapp'].forEach(id => { document.getElementById(id).disabled = !IS_SUPER; });
+  document.getElementById('pf_dob').value = p.dob || '';
+  ['pf_name', 'pf_phone', 'pf_whatsapp', 'pf_dob'].forEach(id => { document.getElementById(id).disabled = !IS_SUPER; });
   document.getElementById('pf_superWrap').style.display = IS_SUPER ? '' : 'none';
   document.getElementById('pf_super').checked = !!p.superAdmin;
   document.getElementById('personStatus').textContent = '';
@@ -1141,6 +1143,7 @@ document.getElementById('personSaveBtn').addEventListener('click', async () => {
     data.name = name;
     data.phone = document.getElementById('pf_phone').value.trim();
     data.whatsapp = document.getElementById('pf_whatsapp').value.trim();
+    data.dob = document.getElementById('pf_dob').value;
     data.superAdmin = document.getElementById('pf_super').checked;
     if (p.superAdmin && !data.superAdmin) {
       if (_people.filter(x => x.superAdmin).length <= 1) { status.textContent = 'This is the only Super Admin. Make someone else a Super Admin first.'; return; }

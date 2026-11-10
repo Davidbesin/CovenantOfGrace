@@ -88,8 +88,8 @@ let _sermonCatFilter = 'church';
 const sermonAudioEl = document.getElementById('sermonAudioPlayer');
 
 function resetPlayButtons() {
-  document.querySelectorAll('.play-btn i').forEach(i => i.className = 'bi bi-play-fill');
-  document.querySelectorAll('.play-btn').forEach(b => { b.style.background = ''; b.style.color = 'var(--gold)'; });
+  document.querySelectorAll('.play-btn:not(.dl-btn) i').forEach(i => i.className = 'bi bi-play-fill');
+  document.querySelectorAll('.play-btn:not(.dl-btn)').forEach(b => { b.style.background = ''; b.style.color = 'var(--gold)'; });
 }
 
 async function renderSermons() {
@@ -113,10 +113,47 @@ async function renderSermons() {
       <button class="play-btn d-flex align-items-center justify-content-center" data-audio-url="${s.audioUrl || ''}" ${s.audioUrl ? '' : 'disabled title="Audio not available yet"'}>
         <i class="bi bi-play-fill"></i>
       </button>
+      <button class="play-btn dl-btn d-flex align-items-center justify-content-center" data-audio-url="${s.audioUrl || ''}" data-name="${(s.audioName || (s.title + '.mp3')).replace(/"/g, '')}" ${s.audioUrl ? 'title="Download"' : 'disabled title="Audio not available yet"'}>
+        <i class="bi bi-download"></i>
+      </button>
     </div>
   `).join('');
 
-  document.querySelectorAll('.play-btn').forEach(btn => {
+  document.querySelectorAll('.dl-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const url = btn.dataset.audioUrl;
+      if (!url) return;
+      const name = btn.dataset.name || 'sermon.mp3';
+      const icon = btn.querySelector('i');
+      icon.className = 'bi bi-hourglass-split';
+      btn.disabled = true;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      } catch (e) {
+        // CORS not enabled on the bucket (or network issue): open the file so the browser can save it
+        console.warn('Direct download failed, opening file instead', e);
+        const a = document.createElement('a');
+        a.href = url; a.download = name; a.target = '_blank'; a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } finally {
+        icon.className = 'bi bi-download';
+        btn.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll('.play-btn:not(.dl-btn)').forEach(btn => {
     btn.addEventListener('click', () => {
       const url = btn.dataset.audioUrl;
       if (!url) return;

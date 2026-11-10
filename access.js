@@ -37,7 +37,7 @@ const Access = (() => {
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const arr = v => Array.isArray(v) ? v : [];
-  const norm = d => d && ({ ...d, token: d.id, departments: arr(d.departments), requested: arr(d.requested), headOf: arr(d.headOf), superAdmin: !!d.superAdmin });
+  const norm = d => d && ({ ...d, token: d.id, dob: typeof d.dob === 'string' ? d.dob : '', departments: arr(d.departments), requested: arr(d.requested), headOf: arr(d.headOf), superAdmin: !!d.superAdmin });
   const isAdminLevel = d => d && (d.superAdmin || d.headOf.length > 0);
 
   /* ── UI ── */
@@ -51,7 +51,10 @@ const Access = (() => {
   #accessOverlay p{font-size:13.5px;color:rgba(255,255,255,.62);margin:0 0 18px;line-height:1.55}
   #accessOverlay .a-hint{font-size:12px;margin:8px 0 0}
   #accessOverlay label.a-lbl{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.75);margin:14px 0 6px}
-  #accessOverlay input[type=text],#accessOverlay input[type=tel],#accessOverlay input[type=password]{width:100%;padding:12px 14px;border-radius:10px;
+  #accessOverlay input[type=date]{color-scheme:dark}
+  #accessOverlay.a-small{align-items:center}
+  #accessOverlay a.a-skip{display:block;text-align:center;margin-top:14px;color:rgba(255,255,255,.5);font-size:12.5px;text-decoration:none;cursor:pointer}
+  #accessOverlay input[type=text],#accessOverlay input[type=tel],#accessOverlay input[type=password],#accessOverlay input[type=date]{width:100%;padding:12px 14px;border-radius:10px;
     border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;font-size:15px;outline:none}
   #accessOverlay input:focus{border-color:#c8860a}
   #accessOverlay input:disabled{opacity:.55}
@@ -106,6 +109,50 @@ const Access = (() => {
     }
   }
 
+  /* ── date of birth helpers ── */
+  const todayISO = () => {
+    const d = new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  };
+  const validDob = v => /^\d{4}-\d{2}-\d{2}$/.test(v || '') && v >= '1900-01-01' && v <= todayISO();
+
+  /* Small window for devices registered before date of birth was collected. */
+  function dobPrompt(me) {
+    if (me.dob) return Promise.resolve(me);
+    try { if (sessionStorage.getItem('cog_dob_skip') === '1') return Promise.resolve(me); } catch (e) {}
+    return new Promise(resolve => {
+      const ov = mount(`
+        <h3>One quick update</h3>
+        <p>Hi ${esc(me.name)}, we now keep a date of birth for everyone registered. Please add yours.</p>
+        <label class="a-lbl" for="aDob">Date of birth</label>
+        <input type="date" id="aDob" max="${todayISO()}" min="1900-01-01" autocomplete="bday">
+        <div class="a-err" id="aErr"></div>
+        <button class="a-go" id="aGo">Save</button>
+        <a class="a-skip" id="aSkip">Ask me later</a>`);
+      ov.classList.add('a-small');
+      const $ = id => ov.querySelector('#' + id);
+      $('aSkip').addEventListener('click', () => {
+        try { sessionStorage.setItem('cog_dob_skip', '1'); } catch (e) {}
+        resolve(me);
+      });
+      $('aGo').addEventListener('click', async () => {
+        const err = $('aErr'); err.style.display = 'none';
+        const dob = $('aDob').value;
+        if (!validDob(dob)) { err.textContent = 'Please pick a valid date of birth.'; err.style.display = 'block'; return; }
+        $('aGo').disabled = true;
+        try {
+          await DB.updateDevice(me.token, { dob });
+          resolve({ ...me, dob });
+        } catch (e) {
+          console.error(e);
+          err.textContent = 'Could not save. Check your connection and try again.';
+          err.style.display = 'block';
+          $('aGo').disabled = false;
+        }
+      });
+    });
+  }
+
   /* ── registration (new device) ── */
   async function registerForm() {
     let depts = [];
@@ -121,6 +168,8 @@ const Access = (() => {
         <label class="a-lbl" for="aWa">WhatsApp number</label>
         <input type="tel" id="aWa" placeholder="e.g. 08012345678">
         <label class="a-check"><input type="checkbox" id="aSame"> Same as phone number</label>
+        <label class="a-lbl" for="aDob">Date of birth</label>
+        <input type="date" id="aDob" max="${todayISO()}" min="1900-01-01" autocomplete="bday">
         <label class="a-lbl">Which department(s) do you serve in?</label>
         <div class="a-depts">
           ${depts.map(d => `<label class="a-check"><input type="checkbox" class="aDept" value="${esc(d.id)}"> ${esc(d.icon || '')} ${esc(d.name)}</label>`).join('')}
@@ -143,9 +192,11 @@ const Access = (() => {
         const whatsapp = $('aSame').checked ? phone : $('aWa').value.trim();
         if (!name) { err.textContent = 'Please enter your name.'; err.style.display = 'block'; return; }
         if (phone.replace(/\D/g, '').length < 7) { err.textContent = 'Please enter a valid phone number.'; err.style.display = 'block'; return; }
+        const dob = $('aDob').value;
+        if (!validDob(dob)) { err.textContent = 'Please enter your date of birth.'; err.style.display = 'block'; return; }
         const requested = [...ov.querySelectorAll('.aDept:checked')].map(i => i.value);
         const token = newToken();
-        const data = { name, phone, whatsapp, departments: [], requested, headOf: [], superAdmin: false };
+        const data = { name, phone, whatsapp, dob, departments: [], requested, headOf: [], superAdmin: false };
         $('aGo').disabled = true;
         try {
           await DB.createDevice(token, data);
@@ -212,6 +263,7 @@ const Access = (() => {
     cover();
     let me = await fetchMe();
     if (!me) me = await registerForm();
+    else me = await dobPrompt(me);
     clearUi();
     return me;
   }
@@ -219,7 +271,7 @@ const Access = (() => {
   async function requireAdmin() {
     cover();
     const me = await fetchMe();
-    if (isAdminLevel(me)) { clearUi(); return me; }
+    if (isAdminLevel(me)) { const m = await dobPrompt(me); clearUi(); return m; }
 
     let anySuper;
     try { anySuper = await DB.hasSuperAdmin(); }
