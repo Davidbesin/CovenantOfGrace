@@ -152,9 +152,23 @@ let _pendingAudioFile = null;
 
 const isTextCat = c => c === 'written' || c === 'excerpts';
 function syncSermonTextField() {
-  document.getElementById('sf_textWrap').style.display = isTextCat(document.getElementById('sf_category').value) ? '' : 'none';
+  const text = isTextCat(document.getElementById('sf_category').value);
+  document.getElementById('sf_textWrap').style.display  = text ? '' : 'none';
+  document.getElementById('sf_audioWrap').style.display = text ? 'none' : '';
 }
 document.getElementById('sf_category').addEventListener('change', syncSermonTextField);
+
+/* rich text box: Bold / Italic / Underline; pasting is always plain text */
+document.querySelectorAll('.adm-rte-bar button').forEach(b => {
+  b.addEventListener('mousedown', e => e.preventDefault());   // keep the text selection
+  b.addEventListener('click', () => { document.execCommand(b.dataset.cmd); document.getElementById('sf_text').focus(); });
+});
+document.getElementById('sf_text').addEventListener('paste', e => {
+  e.preventDefault();
+  document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain'));
+});
+/* old entries were saved as plain text with line breaks */
+const toRteHtml = t => /<[a-z][\s\S]*>/i.test(t || '') ? t : escHtml(t || '').replace(/\n/g, '<br>');
 
 function sermonCatLabel(cat) {
   return ({
@@ -184,7 +198,7 @@ async function renderSermons() {
         <div class="adm-item-sub">${s.speaker} · ${s.date}</div>
         ${s.audioUrl
           ? `<div class="adm-item-audio-badge"><i class="bi bi-check-circle-fill"></i> ${s.audioName || 'Audio attached'}</div>`
-          : (isTextCat(s.category) && s.text ? '' : `<div class="adm-item-audio-badge missing"><i class="bi bi-exclamation-circle-fill"></i> No audio uploaded</div>`)}
+          : (isTextCat(s.category) ? '' : `<div class="adm-item-audio-badge missing"><i class="bi bi-exclamation-circle-fill"></i> No audio uploaded</div>`)}
         ${isTextCat(s.category) && s.text ? `<div class="adm-item-audio-badge"><i class="bi bi-file-text-fill"></i> Text added</div>` : ''}
       </div>
       <div class="adm-item-actions">
@@ -205,7 +219,7 @@ async function renderSermons() {
       document.getElementById('sf_speaker').value = s.speaker;
       document.getElementById('sf_date').value    = s.date;
       document.getElementById('sf_audio').value   = '';
-      document.getElementById('sf_text').value    = s.text || '';
+      document.getElementById('sf_text').innerHTML = toRteHtml(s.text);
       syncSermonTextField();
       const currentEl = document.getElementById('sf_audioCurrent');
       if (s.audioUrl) {
@@ -245,7 +259,7 @@ document.getElementById('addSermonBtn').addEventListener('click', () => {
   _pendingAudioFile = null;
   ['sf_title','sf_speaker','sf_date'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('sf_category').value = _sermonActiveCat;
-  document.getElementById('sf_text').value = '';
+  document.getElementById('sf_text').innerHTML = '';
   syncSermonTextField();
   document.getElementById('sf_audio').value = '';
   document.getElementById('sf_audioCurrent').style.display = 'none';
@@ -273,8 +287,10 @@ document.getElementById('sermonSaveBtn').addEventListener('click', async () => {
   };
   if (!data.title || !data.speaker) return alert('Please fill in Title and Speaker.');
   if (isTextCat(data.category)) {
-    data.text = document.getElementById('sf_text').value.trim();
-    if (!data.text && !_pendingAudioFile) return alert('Please add the text (or an audio file).');
+    const box = document.getElementById('sf_text');
+    data.text = box.textContent.trim() ? box.innerHTML.trim() : '';
+    if (!data.text) return alert('Please add the text.');
+    _pendingAudioFile = null;   // text entries don't use audio
   }
 
   const saveBtn = document.getElementById('sermonSaveBtn');

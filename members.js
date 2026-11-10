@@ -92,6 +92,23 @@ function resetPlayButtons() {
   document.querySelectorAll('.play-btn:not(.dl-btn)').forEach(b => { b.style.background = ''; b.style.color = 'var(--gold)'; });
 }
 
+/* Allows only bold / italic / underline / line breaks from saved sermon text; everything else is stripped. */
+function cleanRich(html) {
+  const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const keep = { B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u', DIV: 'div', P: 'p' };
+  if (!/<[a-z][\s\S]*>/i.test(html || '')) return esc(html || '').replace(/\n/g, '<br>');   // old plain-text entries
+  const t = document.createElement('template');
+  t.innerHTML = html;
+  const walk = n => [...n.childNodes].map(c => {
+    if (c.nodeType === 3) return esc(c.nodeValue);
+    if (c.nodeType !== 1 || ['SCRIPT', 'STYLE'].includes(c.tagName)) return '';
+    if (c.tagName === 'BR') return '<br>';
+    const tag = keep[c.tagName];
+    return tag ? `<${tag}>${walk(c)}</${tag}>` : walk(c);
+  }).join('');
+  return walk(t.content);
+}
+
 async function renderSermons() {
   const container = document.getElementById('sermonsContainer');
   if (!container) return;
@@ -125,7 +142,7 @@ async function renderSermons() {
       <button class="play-btn dl-btn d-flex align-items-center justify-content-center" data-audio-url="${s.audioUrl || ''}" data-name="${(s.audioName || (s.title + '.mp3')).replace(/"/g, '')}" ${s.audioUrl ? 'title="Download"' : 'disabled title="Audio not available yet"'}>
         <i class="bi bi-download"></i>
       </button>` : ''}
-      ${s.text ? `<div class="sermon-text" style="display:none;flex:0 0 100%;white-space:pre-line;font-size:14px;line-height:1.75;color:#374151;border-top:1px solid rgba(0,0,0,.07);padding-top:14px">${esc(s.text)}</div>` : ''}
+      ${s.text ? `<div class="sermon-text" style="display:none;flex:0 0 100%;font-size:14px;line-height:1.75;color:#374151;border-top:1px solid rgba(0,0,0,.07);padding-top:14px">${cleanRich(s.text)}</div>` : ''}
     </div>
   `).join('');
 

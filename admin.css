@@ -544,6 +544,21 @@ body {
 }
 .adm-item-audio-badge.missing { color: #ef4444; background: #fef2f2; }
 
+/* ── RICH TEXT BOX (Sermons) ── */
+.adm-rte { border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; overflow: hidden; }
+.adm-rte:focus-within { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
+.adm-rte-bar { display: flex; gap: 4px; padding: 6px 8px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+.adm-rte-bar button {
+  width: 32px; height: 32px; border: none; border-radius: 8px; background: transparent;
+  color: #374151; font-size: 16px; cursor: pointer; transition: background .15s;
+}
+.adm-rte-bar button:hover { background: var(--gold-glow); color: var(--gold); }
+.adm-rte-body {
+  min-height: 180px; max-height: 420px; overflow-y: auto; padding: 12px 14px;
+  font-family: 'Inter', sans-serif; font-size: 13.5px; line-height: 1.7; color: #111827; outline: none;
+}
+.adm-rte-body:empty::before { content: attr(data-placeholder); color: #9ca3af; }
+
 /* ── ATTENDANCE ── */
 .adm-att-view { display: none; }
 .adm-att-view.active { display: block; }

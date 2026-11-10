@@ -116,11 +116,18 @@
         <div class="adm-field"><label>Speaker</label><input type="text" id="sf_speaker" placeholder="e.g. Pastor Emmanuel Adeyemi"></div>
         <div class="adm-field"><label>Date</label><input type="text" id="sf_date" placeholder="e.g. 1 June 2025"></div>
         <div class="adm-field adm-field-full" id="sf_textWrap" style="display:none">
-          <label>Text <span class="adm-hint">— press Enter for a new paragraph</span></label>
-          <textarea id="sf_text" rows="8" placeholder="Type or paste the written word / service excerpt here…"></textarea>
+          <label>Text</label>
+          <div class="adm-rte">
+            <div class="adm-rte-bar">
+              <button type="button" data-cmd="bold" title="Bold"><i class="bi bi-type-bold"></i></button>
+              <button type="button" data-cmd="italic" title="Italic"><i class="bi bi-type-italic"></i></button>
+              <button type="button" data-cmd="underline" title="Underline"><i class="bi bi-type-underline"></i></button>
+            </div>
+            <div id="sf_text" class="adm-rte-body" contenteditable="true" data-placeholder="Type or paste the written word / service excerpt here…"></div>
+          </div>
         </div>
-        <div class="adm-field adm-field-full">
-          <label>Audio File <span class="adm-hint">— optional for Written Word and Excerpts</span></label>
+        <div class="adm-field adm-field-full" id="sf_audioWrap">
+          <label>Audio File</label>
           <input type="file" id="sf_audio" accept="audio/*">
           <div id="sf_audioCurrent" class="adm-audio-current" style="display:none"></div>
           <div id="sf_uploadProgress" class="adm-upload-progress" style="display:none">
