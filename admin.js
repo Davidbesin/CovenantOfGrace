@@ -150,8 +150,18 @@ let _sermonCache = [];
 let _sermonActiveCat = 'church';
 let _pendingAudioFile = null;
 
+const isTextCat = c => c === 'written' || c === 'excerpts';
+function syncSermonTextField() {
+  document.getElementById('sf_textWrap').style.display = isTextCat(document.getElementById('sf_category').value) ? '' : 'none';
+}
+document.getElementById('sf_category').addEventListener('change', syncSermonTextField);
+
 function sermonCatLabel(cat) {
-  return cat === 'guest' ? 'Guest Speaker / Special Program' : 'Church (Main Sunday Service)';
+  return ({
+    guest:    'Guest Speaker / Special Program',
+    written:  'Written Word',
+    excerpts: 'Weekly Service Excerpts'
+  })[cat] || 'Church (Main Sunday Service)';
 }
 
 async function renderSermons() {
@@ -162,7 +172,8 @@ async function renderSermons() {
   const filtered = list.filter(s => (s.category || 'church') === _sermonActiveCat);
 
   if (!filtered.length) {
-    el.innerHTML = `<div class="adm-empty"><i class="bi bi-mic"></i>No ${_sermonActiveCat === 'guest' ? 'guest speaker' : 'church'} sermons yet. Add one above.</div>`;
+    const emptyLabel = ({ church: 'church sermons', guest: 'guest speaker sermons', written: 'written word entries', excerpts: 'weekly service excerpts' })[_sermonActiveCat] || 'entries';
+    el.innerHTML = `<div class="adm-empty"><i class="bi bi-mic"></i>No ${emptyLabel} yet. Add one above.</div>`;
     return;
   }
   el.innerHTML = filtered.map(s => `
@@ -173,7 +184,8 @@ async function renderSermons() {
         <div class="adm-item-sub">${s.speaker} · ${s.date}</div>
         ${s.audioUrl
           ? `<div class="adm-item-audio-badge"><i class="bi bi-check-circle-fill"></i> ${s.audioName || 'Audio attached'}</div>`
-          : `<div class="adm-item-audio-badge missing"><i class="bi bi-exclamation-circle-fill"></i> No audio uploaded</div>`}
+          : (isTextCat(s.category) && s.text ? '' : `<div class="adm-item-audio-badge missing"><i class="bi bi-exclamation-circle-fill"></i> No audio uploaded</div>`)}
+        ${isTextCat(s.category) && s.text ? `<div class="adm-item-audio-badge"><i class="bi bi-file-text-fill"></i> Text added</div>` : ''}
       </div>
       <div class="adm-item-actions">
         <button class="adm-edit-btn" data-id="${s.id}" title="Edit"><i class="bi bi-pencil"></i></button>
@@ -193,6 +205,8 @@ async function renderSermons() {
       document.getElementById('sf_speaker').value = s.speaker;
       document.getElementById('sf_date').value    = s.date;
       document.getElementById('sf_audio').value   = '';
+      document.getElementById('sf_text').value    = s.text || '';
+      syncSermonTextField();
       const currentEl = document.getElementById('sf_audioCurrent');
       if (s.audioUrl) {
         currentEl.style.display = 'flex';
@@ -231,6 +245,8 @@ document.getElementById('addSermonBtn').addEventListener('click', () => {
   _pendingAudioFile = null;
   ['sf_title','sf_speaker','sf_date'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('sf_category').value = _sermonActiveCat;
+  document.getElementById('sf_text').value = '';
+  syncSermonTextField();
   document.getElementById('sf_audio').value = '';
   document.getElementById('sf_audioCurrent').style.display = 'none';
   document.getElementById('sf_uploadProgress').style.display = 'none';
@@ -256,6 +272,10 @@ document.getElementById('sermonSaveBtn').addEventListener('click', async () => {
     date:     document.getElementById('sf_date').value.trim(),
   };
   if (!data.title || !data.speaker) return alert('Please fill in Title and Speaker.');
+  if (isTextCat(data.category)) {
+    data.text = document.getElementById('sf_text').value.trim();
+    if (!data.text && !_pendingAudioFile) return alert('Please add the text (or an audio file).');
+  }
 
   const saveBtn = document.getElementById('sermonSaveBtn');
   saveBtn.disabled = true;

@@ -95,6 +95,8 @@
     <div class="adm-subtabs">
       <button class="adm-subtab-btn active" data-cat="church">Church Sermons</button>
       <button class="adm-subtab-btn" data-cat="guest">Guest Speakers / Special Programs</button>
+      <button class="adm-subtab-btn" data-cat="written">Written Word</button>
+      <button class="adm-subtab-btn" data-cat="excerpts">Weekly Service Excerpts</button>
     </div>
 
     <!-- Sermon form -->
@@ -106,13 +108,19 @@
           <select id="sf_category">
             <option value="church">Church (Main Sunday Service)</option>
             <option value="guest">Guest Speaker / Special Program</option>
+            <option value="written">Written Word</option>
+            <option value="excerpts">Weekly Service Excerpts</option>
           </select>
         </div>
         <div class="adm-field"><label>Title</label><input type="text" id="sf_title" placeholder="e.g. Walking in Divine Purpose"></div>
         <div class="adm-field"><label>Speaker</label><input type="text" id="sf_speaker" placeholder="e.g. Pastor Emmanuel Adeyemi"></div>
         <div class="adm-field"><label>Date</label><input type="text" id="sf_date" placeholder="e.g. 1 June 2025"></div>
+        <div class="adm-field adm-field-full" id="sf_textWrap" style="display:none">
+          <label>Text <span class="adm-hint">— press Enter for a new paragraph</span></label>
+          <textarea id="sf_text" rows="8" placeholder="Type or paste the written word / service excerpt here…"></textarea>
+        </div>
         <div class="adm-field adm-field-full">
-          <label>Audio File</label>
+          <label>Audio File <span class="adm-hint">— optional for Written Word and Excerpts</span></label>
           <input type="file" id="sf_audio" accept="audio/*">
           <div id="sf_audioCurrent" class="adm-audio-current" style="display:none"></div>
           <div id="sf_uploadProgress" class="adm-upload-progress" style="display:none">

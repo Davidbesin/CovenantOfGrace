@@ -100,24 +100,43 @@ async function renderSermons() {
   const filtered = list.filter(s => (s.category || 'church') === _sermonCatFilter);
 
   if (!filtered.length) {
-    container.innerHTML = `<p class="text-muted small">No ${_sermonCatFilter === 'guest' ? 'guest speaker' : 'church'} sermons yet.</p>`;
+    const emptyLabels = {
+      church:   'No church sermons yet.',
+      guest:    'No guest speaker sermons yet.',
+      written:  'No written word yet.',
+      excerpts: 'No weekly service excerpts yet.'
+    };
+    container.innerHTML = `<p class="text-muted small">${emptyLabels[_sermonCatFilter] || 'Nothing here yet.'}</p>`;
     return;
   }
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   container.innerHTML = filtered.map(s => `
-    <div class="sermon-card d-flex align-items-center gap-3 p-3" data-sermon-id="${s.id}">
-      <div class="sermon-icon d-flex align-items-center justify-content-center flex-shrink-0"><i class="bi bi-music-note-beamed"></i></div>
+    <div class="sermon-card d-flex flex-wrap align-items-center gap-3 p-3" data-sermon-id="${s.id}">
+      <div class="sermon-icon d-flex align-items-center justify-content-center flex-shrink-0"><i class="bi ${s.text ? 'bi-file-text' : 'bi-music-note-beamed'}"></i></div>
       <div class="flex-grow-1">
         <h6 class="mb-1">${s.title}</h6>
         <p class="spkr mb-0">${s.speaker} &nbsp;·&nbsp; <span style="color:var(--gold)">${s.date}</span></p>
       </div>
+      ${s.text ? `<button class="play-btn read-btn d-flex align-items-center justify-content-center" title="Read"><i class="bi bi-book"></i></button>` : ''}
+      ${(s.audioUrl || !s.text) ? `
       <button class="play-btn d-flex align-items-center justify-content-center" data-audio-url="${s.audioUrl || ''}" ${s.audioUrl ? '' : 'disabled title="Audio not available yet"'}>
         <i class="bi bi-play-fill"></i>
       </button>
       <button class="play-btn dl-btn d-flex align-items-center justify-content-center" data-audio-url="${s.audioUrl || ''}" data-name="${(s.audioName || (s.title + '.mp3')).replace(/"/g, '')}" ${s.audioUrl ? 'title="Download"' : 'disabled title="Audio not available yet"'}>
         <i class="bi bi-download"></i>
-      </button>
+      </button>` : ''}
+      ${s.text ? `<div class="sermon-text" style="display:none;flex:0 0 100%;white-space:pre-line;font-size:14px;line-height:1.75;color:#374151;border-top:1px solid rgba(0,0,0,.07);padding-top:14px">${esc(s.text)}</div>` : ''}
     </div>
   `).join('');
+
+  document.querySelectorAll('.read-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const box = btn.closest('.sermon-card').querySelector('.sermon-text');
+      const open = box.style.display === 'none';
+      box.style.display = open ? 'block' : 'none';
+      btn.querySelector('i').className = open ? 'bi bi-x-lg' : 'bi bi-book';
+    });
+  });
 
   document.querySelectorAll('.dl-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
