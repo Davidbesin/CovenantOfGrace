@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Members' Portal – RCCG Chapel of Grace</title>
+  <title>Members' Portal – Covenant of Grace</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -19,7 +19,7 @@
       <div class="logo-mark d-flex align-items-center justify-content-center rounded-3" style="width:34px;height:34px;">
         <img src="images/rccg-logo.png" alt="RCCG Logo" class="logo-mark-img">
       </div>
-      <div class="logo-text"><strong class="d-block">Chapel of Grace</strong><span class="text-uppercase">RCCG</span></div>
+      <div class="logo-text"><strong class="d-block">Covenant of Grace</strong><span class="text-uppercase">RCCG</span></div>
     </div>
     <button class="btn p-0 border-0" style="color:rgba(255,255,255,.7);font-size:20px"><i class="bi bi-bell"></i></button>
   </div>
@@ -27,8 +27,11 @@
     <a href="#home" class="active"><i class="bi bi-house-door"></i> Home</a>
     <a href="live.html"><i class="bi bi-camera-video"></i> Live</a>
     <a href="scan.html"><i class="bi bi-qr-code-scan"></i> Scan</a>
+    <a href="#devotion"><i class="bi bi-sunrise"></i> Devotion</a>
     <a href="#announcements"><i class="bi bi-megaphone"></i> Announcements</a>
     <a href="#sermons"><i class="bi bi-mic"></i> Sermons</a>
+    <a href="#biblestudy"><i class="bi bi-journal-bookmark"></i> Bible Study</a>
+    <a href="#sundayschool"><i class="bi bi-journal-text"></i> Outlines</a>
     <a href="#prayer"><i class="bi bi-hands"></i> Prayer</a>
     <a href="#about"><i class="bi bi-building"></i> About</a>
   </nav>
@@ -46,7 +49,7 @@
         <div class="logo-mark d-flex align-items-center justify-content-center flex-shrink-0">
           <img src="images/rccg-logo.png" alt="RCCG Logo" class="logo-mark-img">
         </div>
-        <div class="logo-text"><strong class="d-block">Chapel of Grace</strong><span class="text-uppercase">RCCG Parish</span></div>
+        <div class="logo-text"><strong class="d-block">Covenant of Grace</strong><span class="text-uppercase">RCCG Parish</span></div>
       </div>
       <div class="welcome-block p-3 mb-4">
         <p class="eyebrow mb-1">Members' Portal</p>
@@ -59,8 +62,11 @@
         <a href="#home"          class="nav-link-item active"><i class="bi bi-house-door"></i> Home</a>
         <a href="live.html"      class="nav-link-item"><i class="bi bi-camera-video"></i> Live Service</a>
         <a href="scan.html"      class="nav-link-item"><i class="bi bi-qr-code-scan"></i> Scan Attendance</a>
+        <a href="#devotion"      class="nav-link-item"><i class="bi bi-sunrise"></i> Morning Devotion</a>
         <a href="#announcements" class="nav-link-item"><i class="bi bi-megaphone"></i> Announcements</a>
         <a href="#sermons"       class="nav-link-item"><i class="bi bi-mic"></i> Sermons</a>
+        <a href="#biblestudy"    class="nav-link-item"><i class="bi bi-journal-bookmark"></i> Bible Study</a>
+        <a href="#sundayschool"  class="nav-link-item"><i class="bi bi-journal-text"></i> Sunday School Outlines</a>
         <a href="#prayer"        class="nav-link-item"><i class="bi bi-hands"></i> Prayer Requests</a>
         <a href="#about"         class="nav-link-item"><i class="bi bi-building"></i> About Us</a>
       </nav>
@@ -95,6 +101,14 @@
       <div class="row g-3" id="homeCardsContainer"></div>
     </section>
 
+    <!-- MORNING DEVOTION -->
+    <section id="devotion" class="panel p-4 p-lg-5" style="background:var(--surface)">
+      <div class="d-flex justify-content-between align-items-baseline mb-4">
+        <h2 class="section-title mb-0">Morning Devotion</h2>
+      </div>
+      <div id="devotionContainer"></div>
+    </section>
+
     <!-- ANNOUNCEMENTS -->
     <section id="announcements" class="panel p-4 p-lg-5" style="background:var(--surface)">
       <div class="d-flex justify-content-between align-items-baseline mb-4">
@@ -112,10 +126,25 @@
         <button class="sermon-cat-btn active" data-sermon-cat="church">Church</button>
         <button class="sermon-cat-btn" data-sermon-cat="guest">Guest Speakers</button>
         <button class="sermon-cat-btn" data-sermon-cat="written">Written Word</button>
-        <button class="sermon-cat-btn" data-sermon-cat="excerpts">Weekly Service Excerpts</button>
       </div>
       <div class="d-flex flex-column gap-3" id="sermonsContainer"></div>
       <audio id="sermonAudioPlayer" style="display:none"></audio>
+    </section>
+
+    <!-- BIBLE STUDY -->
+    <section id="biblestudy" class="panel p-4 p-lg-5" style="background:var(--surface)">
+      <div class="d-flex justify-content-between align-items-baseline mb-4">
+        <h2 class="section-title mb-0">Bible Study</h2>
+      </div>
+      <div class="d-flex flex-column gap-3" id="bibleStudyContainer"></div>
+    </section>
+
+    <!-- SUNDAY SCHOOL OUTLINES -->
+    <section id="sundayschool" class="panel p-4 p-lg-5" style="background:var(--surface)">
+      <div class="d-flex justify-content-between align-items-baseline mb-4">
+        <h2 class="section-title mb-0">Sunday School Outlines</h2>
+      </div>
+      <div class="d-flex flex-column gap-3" id="outlinesContainer"></div>
     </section>
 
     <!-- PRAYER -->

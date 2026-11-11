@@ -1,4 +1,4 @@
-# RCCG Chapel of Grace — Web Portal
+# Covenant of Grace — Web Portal
 ## Developer & Admin Documentation
 
 ---
@@ -95,15 +95,27 @@ Open **`admin.html`** in a browser. No login is required (open access mode).
 - Click the **red trash icon** to delete
 - Changes appear instantly in the Members portal
 
+### Bible Study
+- Its own section in the Members' Portal, managed from **Admin → Bible Study**. Each entry has a title, speaker, date and text
+- Sermons (church, guest speakers, written word) stay under **Admin → Sermons**. Entries that were previously saved as *Weekly Service Excerpts* now appear under Bible Study
+
+### Sunday School Outlines
+- Its own section in the Members' Portal, managed from **Admin → Sunday School Outlines**. Each outline has a title, date and text with Bold / Italic / Underline
+- Stored in the Firestore collection `sundaySchool` (add it to your Firestore rules, read/write, like the other collections)
+
 ### Announcements
 - Click **Add Announcement** → fill in Emoji, Tag, Title, Body, Date → Save
 - Click the **pencil icon** to edit
 - Click the **red trash icon** to delete
 
-### Home Cards (Daily Prayer / Bible Plan / Worship)
+### Home Cards (Daily Prayer / Bible Plan / Open Heaven)
 - These three cards appear on the Members home screen
 - Edit the text content directly in the text area under each card
 - Click **Save** — changes appear immediately on the Members page
+
+### Morning Devotion (Super Admin only)
+- Posts the devotion shown in the Members' Portal **Morning Devotion** section: title, date, scripture, reference, message and an optional prayer
+- Click **Save Devotion**; members see it straight away. Stored in Firestore at `settings/devotion`
 
 ### About Church (Super Admin only)
 - Edits the "About Us" section of the Members' Portal: the story, up to 6 number tiles (e.g. `400+` / Congregation), phone, optional email and address, and service times (one per line)

@@ -20,7 +20,10 @@ const NAV = [
   { group: 'Church content', items: [
     ['announcements', 'megaphone',         'Announcements'],
     ['sermons',       'mic',               'Sermons'],
+    ['biblestudy',    'journal-bookmark',  'Bible Study'],
+    ['sundayschool',  'journal-text',      'Sunday School Outlines'],
     ['homecards',     'house-door',        'Home Cards'],
+    ['devotion',      'sunrise',           'Morning Devotion'],
     ['live',          'camera-video',      'Live Service'],
     ['about',         'building',          'About Church'],
   ]},
@@ -75,8 +78,11 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 
 /* ── PANEL SWITCHING ── */
 function switchPanel(id) {
-  const panel = document.getElementById('panel-' + id);
+  // "Bible Study" reuses the sermons panel, set to its own mode
+  const panelId = id === 'biblestudy' ? 'sermons' : id;
+  const panel = document.getElementById('panel-' + panelId);
   if (!panel) return;
+  if (panelId === 'sermons') setSermonMode(id === 'biblestudy' ? 'biblestudy' : 'sermons');
   document.querySelectorAll('.adm-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.adm-nav-btn').forEach(b => b.classList.remove('active'));
   panel.classList.add('active');
@@ -161,12 +167,12 @@ document.getElementById('sf_category').addEventListener('change', syncSermonText
 /* rich text box: Bold / Italic / Underline; pasting is always plain text */
 document.querySelectorAll('.adm-rte-bar button').forEach(b => {
   b.addEventListener('mousedown', e => e.preventDefault());   // keep the text selection
-  b.addEventListener('click', () => { document.execCommand(b.dataset.cmd); document.getElementById('sf_text').focus(); });
+  b.addEventListener('click', () => { document.execCommand(b.dataset.cmd); b.closest('.adm-rte').querySelector('.adm-rte-body').focus(); });
 });
-document.getElementById('sf_text').addEventListener('paste', e => {
+document.querySelectorAll('.adm-rte-body').forEach(box => box.addEventListener('paste', e => {
   e.preventDefault();
   document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain'));
-});
+}));
 /* old entries were saved as plain text with line breaks */
 const toRteHtml = t => /<[a-z][\s\S]*>/i.test(t || '') ? t : escHtml(t || '').replace(/\n/g, '<br>');
 
@@ -174,8 +180,46 @@ function sermonCatLabel(cat) {
   return ({
     guest:    'Guest Speaker / Special Program',
     written:  'Written Word',
-    excerpts: 'Weekly Service Excerpts'
+    excerpts: 'Bible Study'
   })[cat] || 'Church (Main Sunday Service)';
+}
+
+/* The same panel manages two sections of the Members' Portal:
+   "sermons" (church / guest / written) and "biblestudy" (stored as category "excerpts"). */
+let _sermonMode = 'sermons';
+const entryWord = () => _sermonMode === 'biblestudy' ? 'Bible Study' : 'Sermon';
+
+function setSermonMode(mode) {
+  const bs = mode === 'biblestudy';
+  _sermonMode = mode;
+  document.getElementById('sermonForm').style.display = 'none';
+  editingSermonId = null;
+  _pendingAudioFile = null;
+
+  document.getElementById('sermonsH1').textContent = bs ? 'Bible Study' : 'Sermons';
+  document.getElementById('sermonsSub').textContent = bs
+    ? "Add, edit, or remove Bible Study entries shown in the Members' Portal."
+    : "Add, edit, or remove sermon entries shown in the Members' Portal.";
+  document.getElementById('addSermonBtn').innerHTML = `<i class="bi bi-plus-lg"></i> Add ${entryWord()}`;
+  document.getElementById('sermonSaveBtn').textContent = `Save ${entryWord()}`;
+
+  // sermons: church / guest / written tabs. Bible Study: no tabs, one category.
+  document.getElementById('sermonTabs').style.display = bs ? 'none' : '';
+  document.querySelectorAll('#sermonTabs .adm-subtab-btn').forEach(b => {
+    b.style.display = b.dataset.cat === 'excerpts' ? 'none' : '';
+    b.classList.remove('active');
+  });
+  _sermonActiveCat = bs ? 'excerpts' : 'church';
+  if (!bs) document.querySelector('#sermonTabs .adm-subtab-btn[data-cat="church"]').classList.add('active');
+
+  document.querySelectorAll('#sf_category option').forEach(o => {
+    const off = bs ? o.value !== 'excerpts' : o.value === 'excerpts';
+    o.hidden = off; o.disabled = off;
+  });
+  document.getElementById('sf_categoryWrap').style.display = bs ? 'none' : '';
+  document.getElementById('sf_category').value = _sermonActiveCat;
+  syncSermonTextField();
+  renderSermons();
 }
 
 async function renderSermons() {
@@ -186,7 +230,7 @@ async function renderSermons() {
   const filtered = list.filter(s => (s.category || 'church') === _sermonActiveCat);
 
   if (!filtered.length) {
-    const emptyLabel = ({ church: 'church sermons', guest: 'guest speaker sermons', written: 'written word entries', excerpts: 'weekly service excerpts' })[_sermonActiveCat] || 'entries';
+    const emptyLabel = ({ church: 'church sermons', guest: 'guest speaker sermons', written: 'written word entries', excerpts: 'Bible Study entries' })[_sermonActiveCat] || 'entries';
     el.innerHTML = `<div class="adm-empty"><i class="bi bi-mic"></i>No ${emptyLabel} yet. Add one above.</div>`;
     return;
   }
@@ -229,7 +273,7 @@ async function renderSermons() {
         currentEl.style.display = 'none';
       }
       document.getElementById('sf_uploadProgress').style.display = 'none';
-      document.getElementById('sermonFormTitle').textContent = 'Edit Sermon';
+      document.getElementById('sermonFormTitle').textContent = `Edit ${entryWord()}`;
       document.getElementById('sermonForm').style.display = 'block';
     });
   });
@@ -237,7 +281,7 @@ async function renderSermons() {
   el.querySelectorAll('.adm-del-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
-      showConfirm('Delete sermon?', 'This will remove it (and its audio file) from the Members portal.', async () => {
+      showConfirm(`Delete ${entryWord().toLowerCase()}?`, 'This will remove it (and its audio file) from the Members portal.', async () => {
         await DB.deleteSermon(id);
         renderSermons();
       });
@@ -264,7 +308,7 @@ document.getElementById('addSermonBtn').addEventListener('click', () => {
   document.getElementById('sf_audio').value = '';
   document.getElementById('sf_audioCurrent').style.display = 'none';
   document.getElementById('sf_uploadProgress').style.display = 'none';
-  document.getElementById('sermonFormTitle').textContent = 'Add Sermon';
+  document.getElementById('sermonFormTitle').textContent = `Add ${entryWord()}`;
   document.getElementById('sermonForm').style.display = 'block';
 });
 
@@ -328,6 +372,97 @@ document.getElementById('sermonSaveBtn').addEventListener('click', async () => {
     alert('Something went wrong uploading the audio. Please check your connection and try again.');
   } finally {
     saveBtn.disabled = false;
+  }
+});
+
+/* ══════════════════════════════════════════
+   SUNDAY SCHOOL OUTLINES
+══════════════════════════════════════════ */
+let editingOutlineId = null;
+let _outlineCache = [];
+
+async function renderOutlinesAdmin() {
+  const el = document.getElementById('outlineList');
+  el.innerHTML = '<div class="adm-empty"><i class="bi bi-arrow-clockwise"></i> Loading…</div>';
+  let list;
+  try { list = await DB.getOutlines(); }
+  catch (e) {
+    console.error(e);
+    el.innerHTML = '<div class="adm-empty"><i class="bi bi-exclamation-triangle"></i>Could not load outlines. Check your connection and Firestore rules (the "sundaySchool" collection needs read/write access).</div>';
+    return;
+  }
+  _outlineCache = list;
+  if (!list.length) {
+    el.innerHTML = '<div class="adm-empty"><i class="bi bi-journal-text"></i>No outlines yet. Add one above.</div>';
+    return;
+  }
+  el.innerHTML = list.map(o => `
+    <div class="adm-item">
+      <div class="adm-item-icon"><i class="bi bi-journal-text" style="color:var(--gold)"></i></div>
+      <div class="adm-item-body">
+        <div class="adm-item-title">${escHtml(o.title)}</div>
+        ${o.date ? `<div class="adm-item-sub">${escHtml(o.date)}</div>` : ''}
+      </div>
+      <div class="adm-item-actions">
+        <button class="adm-edit-btn" data-id="${escHtml(o.id)}" title="Edit"><i class="bi bi-pencil"></i></button>
+        <button class="adm-del-btn"  data-id="${escHtml(o.id)}" title="Delete"><i class="bi bi-trash3"></i></button>
+      </div>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('.adm-edit-btn').forEach(btn => btn.addEventListener('click', () => {
+    const o = _outlineCache.find(x => x.id === btn.dataset.id);
+    if (!o) return;
+    editingOutlineId = o.id;
+    document.getElementById('so_title').value = o.title || '';
+    document.getElementById('so_date').value  = o.date || '';
+    document.getElementById('so_text').innerHTML = toRteHtml(o.text);
+    document.getElementById('outlineFormTitle').textContent = 'Edit Outline';
+    document.getElementById('outlineForm').style.display = 'block';
+  }));
+  el.querySelectorAll('.adm-del-btn').forEach(btn => btn.addEventListener('click', () => {
+    const id = btn.dataset.id;
+    showConfirm('Delete outline?', 'This will remove it from the Members portal.', async () => {
+      await DB.deleteOutline(id);
+      renderOutlinesAdmin();
+    });
+  }));
+}
+
+document.getElementById('addOutlineBtn').addEventListener('click', () => {
+  editingOutlineId = null;
+  document.getElementById('so_title').value = '';
+  document.getElementById('so_date').value = '';
+  document.getElementById('so_text').innerHTML = '';
+  document.getElementById('outlineFormTitle').textContent = 'Add Outline';
+  document.getElementById('outlineForm').style.display = 'block';
+});
+document.getElementById('outlineCancelBtn').addEventListener('click', () => {
+  document.getElementById('outlineForm').style.display = 'none';
+  editingOutlineId = null;
+});
+document.getElementById('outlineSaveBtn').addEventListener('click', async () => {
+  const box = document.getElementById('so_text');
+  const data = {
+    title: document.getElementById('so_title').value.trim(),
+    date:  document.getElementById('so_date').value.trim(),
+    text:  box.textContent.trim() ? box.innerHTML.trim() : '',
+  };
+  if (!data.title) return alert('Please enter a title.');
+  if (!data.text)  return alert('Please add the outline text.');
+  const btn = document.getElementById('outlineSaveBtn');
+  btn.disabled = true;
+  try {
+    if (editingOutlineId) await DB.updateOutline(editingOutlineId, data);
+    else                  await DB.addOutline(data);
+    document.getElementById('outlineForm').style.display = 'none';
+    editingOutlineId = null;
+    renderOutlinesAdmin();
+  } catch (e) {
+    console.error(e);
+    alert('Could not save. Check your connection and Firestore rules (the "sundaySchool" collection).');
+  } finally {
+    btn.disabled = false;
   }
 });
 
@@ -452,6 +587,41 @@ async function renderHomeCards() {
     });
   });
 }
+
+/* ══════════════════════════════════════════
+   MORNING DEVOTION  (Super Admin only)
+══════════════════════════════════════════ */
+const DV_FIELDS = ['title', 'date', 'scripture', 'reference', 'message', 'prayer'];
+
+async function renderDevotionAdmin() {
+  document.getElementById('devotionStatus').textContent = '';
+  const d = await DB.getDevotion();
+  DV_FIELDS.forEach(k => { document.getElementById('dv_' + k).value = d[k] || ''; });
+}
+
+async function saveDevotion(clear) {
+  if (!IS_SUPER) return;
+  const status = document.getElementById('devotionStatus');
+  const data = {};
+  DV_FIELDS.forEach(k => { data[k] = clear ? '' : document.getElementById('dv_' + k).value.trim(); });
+  if (!clear && !data.title && !data.message && !data.scripture) {
+    status.style.color = '#ef4444';
+    status.textContent = 'Add at least a title, scripture or message.';
+    return;
+  }
+  try {
+    await DB.setDevotion(data);
+    if (clear) DV_FIELDS.forEach(k => { document.getElementById('dv_' + k).value = ''; });
+    status.style.color = '#166534';
+    status.textContent = clear ? '✓ Devotion cleared.' : '✓ Saved. Members will see this now.';
+  } catch (e) {
+    console.error(e);
+    status.style.color = '#ef4444';
+    status.textContent = 'Could not save. Check your connection and Firestore rules (the "settings" collection).';
+  }
+}
+document.getElementById('devotionSaveBtn').addEventListener('click', () => saveDevotion(false));
+document.getElementById('devotionClearBtn').addEventListener('click', () => saveDevotion(true));
 
 /* ══════════════════════════════════════════
    ABOUT CHURCH  (Super Admin only)
@@ -1214,8 +1384,10 @@ Access.requireAdmin().then(async me => {
   if (IS_SUPER) {
     renderPrayers();
     renderSermons();
+    renderOutlinesAdmin();
     renderAnnouncements();
     renderHomeCards();
+    renderDevotionAdmin();
     renderAbout();
   }
   if (canSeeAttendance()) renderAttendanceCheckin();

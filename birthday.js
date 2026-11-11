@@ -56,7 +56,7 @@
     wrap.innerHTML = `
       <div id="bdayCard" role="dialog" aria-modal="true" aria-label="Happy birthday">
         <div class="bd-emoji">🎂</div>
-        <div class="bd-eyebrow">Chapel of Grace</div>
+        <div class="bd-eyebrow">Covenant of Grace</div>
         <h2>Happy Birthday, ${esc(name)}!</h2>
         ${age > 0 ? `<p class="bd-age">Celebrating ${age} years of God's faithfulness</p>` : '<p class="bd-age">&nbsp;</p>'}
         <p class="bd-prayer">${prayer}</p>

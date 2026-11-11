@@ -232,6 +232,51 @@ const DB = {
   },
 
   /* ══════════════════════════════════════════
+     SUNDAY SCHOOL OUTLINES  (collection: sundaySchool)
+     { title, date, text (bold/italic/underline HTML) }
+  ══════════════════════════════════════════ */
+  async getOutlines() {
+    const snap = await col('sundaySchool').orderBy('createdAt', 'desc').get();
+    return snap.docs.map(docData);
+  },
+
+  async addOutline(data) {
+    await col('sundaySchool').add({ ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    return this.getOutlines();
+  },
+
+  async updateOutline(id, data) {
+    await col('sundaySchool').doc(id).update(data);
+    return this.getOutlines();
+  },
+
+  async deleteOutline(id) {
+    await col('sundaySchool').doc(id).delete();
+    return this.getOutlines();
+  },
+
+  /* ══════════════════════════════════════════
+     MORNING DEVOTION  (settings/devotion)
+  ══════════════════════════════════════════ */
+  async getDevotion() {
+    const empty = { title: '', date: '', scripture: '', reference: '', message: '', prayer: '' };
+    try {
+      const doc = await col('settings').doc('devotion').get();
+      const s = doc.exists ? doc.data() : {};
+      return { ...empty, ...Object.fromEntries(Object.keys(empty).map(k => [k, typeof s[k] === 'string' ? s[k] : ''])) };
+    } catch (e) {
+      console.warn('Could not load devotion', e);
+      return empty;
+    }
+  },
+
+  async setDevotion(data) {
+    await col('settings').doc('devotion').set({
+      ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  },
+
+  /* ══════════════════════════════════════════
      SERMONS
   ══════════════════════════════════════════ */
   async getSermons() {
@@ -322,7 +367,7 @@ const DB = {
     const defaults = [
       { id: 'prayer',  emoji: '🙏', label: 'Daily Prayer', content: 'Lord, guide my steps today. Grant me wisdom, peace, and faith. Amen.' },
       { id: 'bible',   emoji: '📖', label: 'Bible Plan',   content: "Today's reading: Romans 8:1–17 — Life in the Spirit." },
-      { id: 'worship', emoji: '🎵', label: 'Worship',      content: 'Song of the week: "Great Are You Lord" — All Sons & Daughters.' },
+      { id: 'worship', emoji: '🌅', label: 'Open Heaven',  content: "Today's Open Heaven devotional. Read it with your Bible." },
     ];
     const snap = await col('homeCards').get();
     const saved = {};

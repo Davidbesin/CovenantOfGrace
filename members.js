@@ -61,6 +61,26 @@ async function renderHomeCards() {
   `).join('');
 }
 
+/* ── MORNING DEVOTION ── */
+async function renderDevotion() {
+  const box = document.getElementById('devotionContainer');
+  if (!box) return;
+  const d = await DB.getDevotion();
+  const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  if (!d.title && !d.message && !d.scripture) {
+    box.innerHTML = '<p class="text-muted small">Today\'s morning devotion will be posted soon.</p>';
+    return;
+  }
+  box.innerHTML = `
+    <div class="devotion-card">
+      <div class="devotion-eyebrow"><span><i class="bi bi-sunrise"></i> Morning Devotion</span>${d.date ? `<span class="devotion-date">${e(d.date)}</span>` : ''}</div>
+      ${d.title ? `<h3 class="devotion-title">${e(d.title)}</h3>` : ''}
+      ${d.scripture ? `<div class="devotion-verse"><p>"${e(d.scripture)}"</p>${d.reference ? `<span>— ${e(d.reference)}</span>` : ''}</div>` : ''}
+      ${d.message ? `<div class="devotion-message">${e(d.message)}</div>` : ''}
+      ${d.prayer ? `<div class="devotion-prayer"><strong>Prayer</strong>${e(d.prayer)}</div>` : ''}
+    </div>`;
+}
+
 /* ── ANNOUNCEMENTS ── */
 async function renderAnnouncements() {
   const container = document.getElementById('announcementsContainer');
@@ -80,6 +100,37 @@ async function renderAnnouncements() {
       </div>
     </div>
   `).join('');
+}
+
+/* ── SUNDAY SCHOOL OUTLINES ── */
+async function renderOutlines() {
+  const container = document.getElementById('outlinesContainer');
+  if (!container) return;
+  let list;
+  try { list = await DB.getOutlines(); }
+  catch (err) { console.warn('Could not load outlines', err); container.innerHTML = '<p class="text-muted small">Outlines are unavailable right now.</p>'; return; }
+  if (!list.length) { container.innerHTML = '<p class="text-muted small">No Sunday School outlines yet.</p>'; return; }
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  container.innerHTML = list.map(o => `
+    <div class="sermon-card d-flex flex-wrap align-items-center gap-3 p-3">
+      <div class="sermon-icon d-flex align-items-center justify-content-center flex-shrink-0"><i class="bi bi-journal-text"></i></div>
+      <div class="flex-grow-1">
+        <h6 class="mb-1">${esc(o.title)}</h6>
+        ${o.date ? `<p class="spkr mb-0"><span style="color:var(--gold)">${esc(o.date)}</span></p>` : ''}
+      </div>
+      <button class="play-btn read-btn d-flex align-items-center justify-content-center" title="Read"><i class="bi bi-book"></i></button>
+      <div class="sermon-text" style="display:none;flex:0 0 100%;font-size:14px;line-height:1.75;color:#374151;border-top:1px solid rgba(0,0,0,.07);padding-top:14px">${cleanRich(o.text)}</div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.read-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const box = btn.closest('.sermon-card').querySelector('.sermon-text');
+      const open = box.style.display === 'none';
+      box.style.display = open ? 'block' : 'none';
+      btn.querySelector('i').className = open ? 'bi bi-x-lg' : 'bi bi-book';
+    });
+  });
 }
 
 /* ── SERMONS ── */
@@ -110,20 +161,29 @@ function cleanRich(html) {
 }
 
 async function renderSermons() {
-  const container = document.getElementById('sermonsContainer');
-  if (!container) return;
   const list = await DB.getSermons();
   _allSermonsCache = list;
-  const filtered = list.filter(s => (s.category || 'church') === _sermonCatFilter);
+  const emptyLabels = {
+    church:  'No church sermons yet.',
+    guest:   'No guest speaker sermons yet.',
+    written: 'No written word yet.'
+  };
+  paintEntries('sermonsContainer',
+    list.filter(s => (s.category || 'church') === _sermonCatFilter),
+    emptyLabels[_sermonCatFilter] || 'Nothing here yet.');
+}
 
+/* Bible Study entries are stored with the sermons (category "excerpts") but shown in their own section. */
+async function renderBibleStudy() {
+  const list = await DB.getSermons();
+  paintEntries('bibleStudyContainer', list.filter(s => s.category === 'excerpts'), 'No Bible Study yet.');
+}
+
+function paintEntries(containerId, filtered, emptyText) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
   if (!filtered.length) {
-    const emptyLabels = {
-      church:   'No church sermons yet.',
-      guest:    'No guest speaker sermons yet.',
-      written:  'No written word yet.',
-      excerpts: 'No weekly service excerpts yet.'
-    };
-    container.innerHTML = `<p class="text-muted small">${emptyLabels[_sermonCatFilter] || 'Nothing here yet.'}</p>`;
+    container.innerHTML = `<p class="text-muted small">${emptyText}</p>`;
     return;
   }
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -146,7 +206,7 @@ async function renderSermons() {
     </div>
   `).join('');
 
-  document.querySelectorAll('.read-btn').forEach(btn => {
+  container.querySelectorAll('.read-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const box = btn.closest('.sermon-card').querySelector('.sermon-text');
       const open = box.style.display === 'none';
@@ -155,7 +215,7 @@ async function renderSermons() {
     });
   });
 
-  document.querySelectorAll('.dl-btn').forEach(btn => {
+  container.querySelectorAll('.dl-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const url = btn.dataset.audioUrl;
       if (!url) return;
@@ -189,7 +249,7 @@ async function renderSermons() {
     });
   });
 
-  document.querySelectorAll('.play-btn:not(.dl-btn)').forEach(btn => {
+  container.querySelectorAll('.play-btn:not(.dl-btn)').forEach(btn => {
     btn.addEventListener('click', () => {
       const url = btn.dataset.audioUrl;
       if (!url) return;
@@ -223,6 +283,8 @@ document.querySelectorAll('.sermon-cat-btn').forEach(btn => {
     _sermonCatFilter = btn.dataset.sermonCat;
     sermonAudioEl.pause();
     renderSermons();
+renderBibleStudy();
+renderOutlines();
 renderAbout();
   });
 });
@@ -344,6 +406,7 @@ async function loadDailyVerse() {
 /* ── INIT ── */
 loadDailyVerse();
 renderHomeCards();
+renderDevotion();
 renderAnnouncements();
 renderSermons();
 renderAbout();
