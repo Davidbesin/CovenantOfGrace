@@ -158,11 +158,27 @@ let _pendingAudioFile = null;
 
 const isTextCat = c => c === 'written' || c === 'excerpts';
 function syncSermonTextField() {
-  const text = isTextCat(document.getElementById('sf_category').value);
+  const cat   = document.getElementById('sf_category').value;
+  const text  = isTextCat(cat);
+  const video = cat === 'video';
   document.getElementById('sf_textWrap').style.display  = text ? '' : 'none';
-  document.getElementById('sf_audioWrap').style.display = text ? 'none' : '';
+  document.getElementById('sf_videoWrap').style.display = video ? '' : 'none';
+  document.getElementById('sf_audioWrap').style.display = (text || video) ? 'none' : '';
 }
 document.getElementById('sf_category').addEventListener('change', syncSermonTextField);
+
+/* live thumbnail preview while typing the YouTube link */
+function updateVideoPreview() {
+  const box = document.getElementById('sf_videoPreview');
+  const raw = document.getElementById('sf_video').value.trim();
+  if (!raw) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const id = youTubeId(raw);
+  box.style.display = 'block';
+  box.innerHTML = id
+    ? `<img src="${youTubeThumb(id)}" alt="Video thumbnail">`
+    : '<div class="adm-video-bad">That doesn\'t look like a YouTube link.</div>';
+}
+document.getElementById('sf_video').addEventListener('input', updateVideoPreview);
 
 /* rich text box: Bold / Italic / Underline; pasting is always plain text */
 document.querySelectorAll('.adm-rte-bar button').forEach(b => {
@@ -180,6 +196,7 @@ function sermonCatLabel(cat) {
   return ({
     guest:    'Guest Speaker / Special Program',
     written:  'Written Word',
+    video:    'Watch Video',
     excerpts: 'Bible Study'
   })[cat] || 'Church (Main Sunday Service)';
 }
@@ -230,17 +247,21 @@ async function renderSermons() {
   const filtered = list.filter(s => (s.category || 'church') === _sermonActiveCat);
 
   if (!filtered.length) {
-    const emptyLabel = ({ church: 'church sermons', guest: 'guest speaker sermons', written: 'written word entries', excerpts: 'Bible Study entries' })[_sermonActiveCat] || 'entries';
+    const emptyLabel = ({ church: 'church sermons', guest: 'guest speaker sermons', written: 'written word entries', video: 'video sermons', excerpts: 'Bible Study entries' })[_sermonActiveCat] || 'entries';
     el.innerHTML = `<div class="adm-empty"><i class="bi bi-mic"></i>No ${emptyLabel} yet. Add one above.</div>`;
     return;
   }
   el.innerHTML = filtered.map(s => `
     <div class="adm-item">
-      <div class="adm-item-icon"><i class="bi bi-music-note-beamed" style="color:var(--gold)"></i></div>
+      ${s.category === 'video' && youTubeId(s.videoUrl)
+        ? `<img class="adm-item-thumb" src="${youTubeThumb(youTubeId(s.videoUrl))}" alt="">`
+        : `<div class="adm-item-icon"><i class="bi ${s.category === 'video' ? 'bi-youtube' : 'bi-music-note-beamed'}" style="color:var(--gold)"></i></div>`}
       <div class="adm-item-body">
         <div class="adm-item-title">${s.title}</div>
         <div class="adm-item-sub">${s.speaker} · ${s.date}</div>
-        ${s.audioUrl
+        ${s.category === 'video'
+          ? (youTubeId(s.videoUrl) ? `<div class="adm-item-audio-badge"><i class="bi bi-youtube"></i> YouTube video</div>` : `<div class="adm-item-audio-badge missing"><i class="bi bi-exclamation-circle-fill"></i> No valid video link</div>`)
+          : s.audioUrl
           ? `<div class="adm-item-audio-badge"><i class="bi bi-check-circle-fill"></i> ${s.audioName || 'Audio attached'}</div>`
           : (isTextCat(s.category) ? '' : `<div class="adm-item-audio-badge missing"><i class="bi bi-exclamation-circle-fill"></i> No audio uploaded</div>`)}
         ${isTextCat(s.category) && s.text ? `<div class="adm-item-audio-badge"><i class="bi bi-file-text-fill"></i> Text added</div>` : ''}
@@ -264,6 +285,8 @@ async function renderSermons() {
       document.getElementById('sf_date').value    = s.date;
       document.getElementById('sf_audio').value   = '';
       document.getElementById('sf_text').innerHTML = toRteHtml(s.text);
+      document.getElementById('sf_video').value = s.videoUrl || '';
+      updateVideoPreview();
       syncSermonTextField();
       const currentEl = document.getElementById('sf_audioCurrent');
       if (s.audioUrl) {
@@ -304,6 +327,8 @@ document.getElementById('addSermonBtn').addEventListener('click', () => {
   ['sf_title','sf_speaker','sf_date'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('sf_category').value = _sermonActiveCat;
   document.getElementById('sf_text').innerHTML = '';
+  document.getElementById('sf_video').value = '';
+  updateVideoPreview();
   syncSermonTextField();
   document.getElementById('sf_audio').value = '';
   document.getElementById('sf_audioCurrent').style.display = 'none';
@@ -335,6 +360,14 @@ document.getElementById('sermonSaveBtn').addEventListener('click', async () => {
     data.text = box.textContent.trim() ? box.innerHTML.trim() : '';
     if (!data.text) return alert('Please add the text.');
     _pendingAudioFile = null;   // text entries don't use audio
+  }
+  if (data.category === 'video') {
+    const url = document.getElementById('sf_video').value.trim();
+    const id = youTubeId(url);
+    if (!id) return alert('Please paste a valid YouTube link.');
+    data.videoUrl = url;
+    data.videoId  = id;
+    _pendingAudioFile = null;   // video entries don't use audio
   }
 
   const saveBtn = document.getElementById('sermonSaveBtn');

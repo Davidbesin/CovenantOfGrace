@@ -312,3 +312,19 @@ body {
 .devotion-prayer { background: var(--gold-glow); border: 1px solid rgba(200,134,10,.25); border-radius: 14px; padding: 14px 16px; font-size: 13.5px; line-height: 1.7; color: #374151; white-space: pre-line; }
 .devotion-prayer strong { display: block; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
 @media (max-width: 991.98px) { .devotion-title { font-size: 20px; } .devotion-card { padding: 20px 18px; } }
+
+/* ─── VIDEO SERMONS ── */
+.video-card { background: #fff; border: 1px solid rgba(0,0,0,.07); border-radius: 16px; overflow: hidden; transition: transform .2s, box-shadow .2s; height: 100%; }
+.video-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(11,31,75,.08); }
+.video-thumb, .video-frame { position: relative; display: block; width: 100%; aspect-ratio: 16/9; padding: 0; border: 0; background: #000; cursor: pointer; overflow: hidden; }
+.video-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s, opacity .2s; }
+.video-thumb:hover img { transform: scale(1.04); opacity: .9; }
+.video-play { position: absolute; inset: 0; margin: auto; width: 56px; height: 56px; border-radius: 50%; background: rgba(11,31,75,.78); color: var(--gold-light); font-size: 28px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,.3); transition: background .2s, transform .2s; }
+.video-thumb:hover .video-play { background: var(--gold); color: #fff; transform: scale(1.08); }
+.video-frame { cursor: default; }
+.video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-info { padding: 14px 16px 16px; }
+.video-info h6 { font-size: 14px; font-weight: 600; color: #111827; }
+.video-info .spkr { font-size: 12px; color: #6b7280; }
+.video-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--gold); text-decoration: none; }
+.video-link:hover { color: var(--navy); }

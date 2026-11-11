@@ -166,8 +166,13 @@ async function renderSermons() {
   const emptyLabels = {
     church:  'No church sermons yet.',
     guest:   'No guest speaker sermons yet.',
-    written: 'No written word yet.'
+    written: 'No written word yet.',
+    video:   'No video sermons yet.'
   };
+  if (_sermonCatFilter === 'video') {
+    paintVideos('sermonsContainer', list.filter(s => s.category === 'video'), emptyLabels.video);
+    return;
+  }
   paintEntries('sermonsContainer',
     list.filter(s => (s.category || 'church') === _sermonCatFilter),
     emptyLabels[_sermonCatFilter] || 'Nothing here yet.');
@@ -177,6 +182,40 @@ async function renderSermons() {
 async function renderBibleStudy() {
   const list = await DB.getSermons();
   paintEntries('bibleStudyContainer', list.filter(s => s.category === 'excerpts'), 'No Bible Study yet.');
+}
+
+/* Video sermons: YouTube thumbnail with a play overlay; clicking swaps it for the embedded player. */
+function paintVideos(containerId, filtered, emptyText) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const vids = filtered.filter(s => youTubeId(s.videoUrl));
+  if (!vids.length) { container.innerHTML = `<p class="text-muted small">${emptyText}</p>`; return; }
+  container.innerHTML = `<div class="row g-3">` + vids.map(s => {
+    const id = youTubeId(s.videoUrl);
+    return `
+    <div class="col-md-6 col-xl-4">
+      <div class="video-card">
+        <button class="video-thumb" data-vid="${id}" title="Play video" aria-label="Play ${esc(s.title)}">
+          <img src="${youTubeThumb(id)}" alt="" loading="lazy">
+          <span class="video-play"><i class="bi bi-play-fill"></i></span>
+        </button>
+        <div class="video-info">
+          <h6 class="mb-1">${esc(s.title)}</h6>
+          <p class="spkr mb-0">${esc(s.speaker)} &nbsp;·&nbsp; <span style="color:var(--gold)">${esc(s.date)}</span></p>
+          <a class="video-link" href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener"><i class="bi bi-youtube"></i> Open on YouTube</a>
+        </div>
+      </div>
+    </div>`;
+  }).join('') + `</div>`;
+
+  container.querySelectorAll('.video-thumb').forEach(btn => btn.addEventListener('click', () => {
+    if (sermonAudioEl) sermonAudioEl.pause();
+    const wrap = document.createElement('div');
+    wrap.className = 'video-frame';
+    wrap.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${btn.dataset.vid}?autoplay=1&rel=0" title="Sermon video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+    btn.replaceWith(wrap);
+  }));
 }
 
 function paintEntries(containerId, filtered, emptyText) {

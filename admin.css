@@ -559,6 +559,12 @@ body {
 }
 .adm-rte-body:empty::before { content: attr(data-placeholder); color: #9ca3af; }
 
+/* ── VIDEO SERMONS ── */
+.adm-video-preview { margin-top: 8px; }
+.adm-video-preview img { width: 100%; max-width: 320px; aspect-ratio: 16/9; object-fit: cover; border-radius: 10px; border: 1px solid #e5e7eb; display: block; }
+.adm-video-preview .adm-video-bad { font-size: 12.5px; color: #ef4444; }
+.adm-item-thumb { width: 96px; aspect-ratio: 16/9; object-fit: cover; border-radius: 9px; flex-shrink: 0; border: 1px solid #e5e7eb; }
+
 /* ── ATTENDANCE ── */
 .adm-att-view { display: none; }
 .adm-att-view.active { display: block; }

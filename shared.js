@@ -50,6 +50,14 @@ function cleanLinkUrl(u) {
   return 'https://' + u.replace(/^\/+/, '');
 }
 
+/* Extracts the 11-character video ID from any YouTube link (watch, youtu.be, shorts, embed, live). '' if none. */
+function youTubeId(url) {
+  const u = String(url || '').trim();
+  const m = u.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/|v\/))([A-Za-z0-9_-]{11})/i);
+  return m ? m[1] : '';
+}
+const youTubeThumb = id => `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+
 /* Bootstrap-icons class for a link, chosen from where it points */
 function linkIcon(url) {
   const u = String(url || '').toLowerCase();

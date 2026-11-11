@@ -96,6 +96,7 @@
       <button class="adm-subtab-btn active" data-cat="church">Church Sermons</button>
       <button class="adm-subtab-btn" data-cat="guest">Guest Speakers / Special Programs</button>
       <button class="adm-subtab-btn" data-cat="written">Written Word</button>
+      <button class="adm-subtab-btn" data-cat="video">Watch Videos</button>
       <button class="adm-subtab-btn" data-cat="excerpts">Bible Study</button>
     </div>
 
@@ -109,6 +110,7 @@
             <option value="church">Church (Main Sunday Service)</option>
             <option value="guest">Guest Speaker / Special Program</option>
             <option value="written">Written Word</option>
+            <option value="video">Watch Video (YouTube)</option>
             <option value="excerpts">Bible Study</option>
           </select>
         </div>
@@ -125,6 +127,11 @@
             </div>
             <div id="sf_text" class="adm-rte-body" contenteditable="true" data-placeholder="Type or paste the written word / service excerpt here…"></div>
           </div>
+        </div>
+        <div class="adm-field adm-field-full" id="sf_videoWrap" style="display:none">
+          <label>YouTube link</label>
+          <input type="url" id="sf_video" placeholder="https://www.youtube.com/watch?v=… or https://youtu.be/…">
+          <div id="sf_videoPreview" class="adm-video-preview" style="display:none"></div>
         </div>
         <div class="adm-field adm-field-full" id="sf_audioWrap">
           <label>Audio File</label>
