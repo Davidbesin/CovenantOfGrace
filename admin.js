@@ -824,7 +824,43 @@ document.querySelectorAll('.adm-subtab-btn[data-att-tab]').forEach(btn => {
     document.getElementById('att-' + btn.dataset.attTab).classList.add('active');
     if (btn.dataset.attTab === 'history') renderAttendanceHistory();
     if (btn.dataset.attTab === 'checkin') renderAttendanceCheckin();
+    if (btn.dataset.attTab === 'qr') renderQrForDate();
   });
+});
+
+/* -- QR CODE for any date (same fixed code the Ushers' page shows for that day) -- */
+const qrDateInput = document.getElementById('qr_date');
+qrDateInput.value = todayISO();
+qrDateInput.addEventListener('change', renderQrForDate);
+
+async function renderQrForDate() {
+  if (!canSeeAttendance()) return;
+  const box = document.getElementById('qr_box');
+  const status = document.getElementById('qr_status');
+  const date = qrDateInput.value || todayISO();
+  box.innerHTML = '';
+  status.textContent = 'Loading…';
+  try {
+    const code = await DB.getDayCode(date);
+    const url = new URL('checkin.html', location.href).href.split('?')[0] +
+      `?d=${encodeURIComponent(date)}&k=${encodeURIComponent(code)}`;
+    new QRCode(box, { text: url, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M });
+    status.textContent = `QR code for ${date}`;
+  } catch (e) {
+    console.error(e);
+    status.textContent = 'Could not load the code. Check your connection.';
+  }
+}
+
+document.getElementById('qr_download').addEventListener('click', () => {
+  const c = document.querySelector('#qr_box canvas');
+  const img = document.querySelector('#qr_box img');
+  const src = c ? c.toDataURL('image/png') : (img && img.src);
+  if (!src) return;
+  const a = document.createElement('a');
+  a.href = src;
+  a.download = `attendance-qr-${qrDateInput.value || todayISO()}.png`;
+  a.click();
 });
 
 /* -- CHECK-IN -- */

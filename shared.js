@@ -624,6 +624,21 @@ const DB = {
     });
   },
 
+  /* One fixed code per service date (attendanceCodes/{YYYY-MM-DD}). Created on first request, then never changes.
+     A transaction makes sure two people asking at the same time get the same code. */
+  async getDayCode(date) {
+    const ref = col('attendanceCodes').doc(date);
+    return _db.runTransaction(async tx => {
+      const snap = await tx.get(ref);
+      if (snap.exists && snap.data().code) return snap.data().code;
+      const a = new Uint8Array(9);
+      crypto.getRandomValues(a);
+      const code = Array.from(a, b => b.toString(36).padStart(2, '0')).join('').slice(0, 12);
+      tx.set(ref, { code, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      return code;
+    });
+  },
+
   async closeAttendanceSession() {
     await col('settings').doc('attendanceSession').set({ open: false, date: '', code: '', prev: '' });
   },
