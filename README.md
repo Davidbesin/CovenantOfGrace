@@ -1,4 +1,5 @@
 # Covenant of Grace — Web Portal
+
 ## Developer & Admin Documentation
 
 ---
@@ -31,6 +32,7 @@ chapel-portal/
 
 All content is stored in the browser's **localStorage** via `shared.js`.
 This means:
+
 - Data persists across page refreshes
 - Admin changes instantly appear in the Members portal (same browser)
 - No server or database is needed
@@ -70,12 +72,15 @@ Open **`workers.js`** and find the `departments` array at the top.
 ```
 
 ### To ADD a department
+
 Copy any existing block and paste it at the end of the array (before the closing `]`), then fill in the details.
 
 ### To REMOVE a department
+
 Delete its entire block from `{` to the closing `},`.
 
 ### To EDIT a department
+
 Change any value directly. Save the file and refresh.
 
 ---
@@ -85,50 +90,61 @@ Change any value directly. Save the file and refresh.
 Open **`admin.html`** in a browser. No login is required (open access mode).
 
 ### Prayer Requests
+
 - View all anonymous requests submitted by members
 - Click the **red trash icon** to remove a request
 - Removed requests disappear from the Members portal immediately
 
 ### Sermons
+
 - Click **Add Sermon** → fill in Title, Speaker, Date → Save
 - Click the **pencil icon** to edit an existing sermon
 - Click the **red trash icon** to delete
 - Changes appear instantly in the Members portal
 
 ### Bible Study
+
 - Its own section in the Members' Portal, managed from **Admin → Bible Study**. Each entry has a title, speaker, date and text
 - Sermons (church, guest speakers, written word) stay under **Admin → Sermons**. Entries that were previously saved as *Weekly Service Excerpts* now appear under Bible Study
 
 ### Sunday School Outlines
+
 - Its own section in the Members' Portal, managed from **Admin → Sunday School Outlines**. Each outline has a title, date and text with Bold / Italic / Underline
 - Stored in the Firestore collection `sundaySchool` (add it to your Firestore rules, read/write, like the other collections)
 
 ### Announcements
+
 - Click **Add Announcement** → fill in Emoji, Tag, Title, Body, Date → Save
 - Click the **pencil icon** to edit
 - Click the **red trash icon** to delete
 
 ### Home Cards (Daily Prayer / Bible Plan / Open Heaven)
+
 - These three cards appear on the Members home screen
 - Edit the text content directly in the text area under each card
 - Click **Save** — changes appear immediately on the Members page
 
 ### Morning Devotion (Super Admin only)
+
 - Posts the devotion shown in the Members' Portal **Morning Devotion** section: title, date, scripture, reference, message and an optional prayer
 - Click **Save Devotion**; members see it straight away. Stored in Firestore at `settings/devotion`
 
 ### About Church (Super Admin only)
+
 - Edits the "About Us" section of the Members' Portal: the story, up to 6 number tiles (e.g. `400+` / Congregation), phone, optional email and address, and service times (one per line)
 - Click **Save About**; members see it straight away. Stored in Firestore at `settings/about`
 
 ### Admin layout
+
 - The sidebar is grouped: **Church content**, **Services & care**, **Workers**. Department heads only see the Workers group (plus Attendance for the Usher head)
 
 ### Editing a department
+
 - A Super Admin edits any department. A department head edits **only their own** (Admin → Departments, or the **Edit this department** button on their card in the Workers' Portal)
 - Only a Super Admin can rename a department, because Usher/Prayer access is found by the department name
 
 ### Worker Applications
+
 - Submitted when someone fills in the registration form on the Workers portal
 - Status starts as **pending**
 - Click **Approve** or **Reject** to update status
@@ -139,6 +155,7 @@ Open **`admin.html`** in a browser. No login is required (open access mode).
 ## 3. Members Can Post Anonymous Prayers
 
 On the Members portal → Prayer Requests section:
+
 - A text area is shown above the prayer list
 - Anyone can type a request and click **Post Request**
 - Their name is never shown — only "Anonymous"
@@ -170,6 +187,7 @@ location.reload();
 ```
 
 Or clear individual sections:
+
 ```js
 localStorage.removeItem('cog_prayers');        // Reset prayers
 localStorage.removeItem('cog_sermons');        // Reset sermons
@@ -184,14 +202,14 @@ localStorage.removeItem('cog_registrations'); // Reset applications
 
 All pages share the same CSS design tokens defined in each file's `:root`:
 
-| Token | Value | Used for |
-|---|---|---|
-| `--navy` | `#0b1f4b` | Primary dark blue |
-| `--navy-2` | `#0d2a66` | Secondary navy |
-| `--gold` | `#c8860a` | Accent colour, labels, icons |
-| `--gold-light` | `#f5a623` | Lighter gold, hover states |
-| `--gold-glow` | `rgba(200,134,10,.14)` | Subtle gold backgrounds |
-| `--surface` | `#f4f6fb` | Page background, tile backgrounds |
+| Token          | Value                  | Used for                          |
+| -------------- | ---------------------- | --------------------------------- |
+| `--navy`       | `#0b1f4b`              | Primary dark blue                 |
+| `--navy-2`     | `#0d2a66`              | Secondary navy                    |
+| `--gold`       | `#c8860a`              | Accent colour, labels, icons      |
+| `--gold-light` | `#f5a623`              | Lighter gold, hover states        |
+| `--gold-glow`  | `rgba(200,134,10,.14)` | Subtle gold backgrounds           |
+| `--surface`    | `#f4f6fb`              | Page background, tile backgrounds |
 
 **Fonts:** `Playfair Display` (headings) + `Inter` (body) — loaded from Google Fonts.
 
@@ -212,6 +230,7 @@ To change the colour scheme, update these token values in the relevant CSS file.
 ## 8. Going Live / Deploying
 
 The portal is a set of static HTML files. You can host it for free on:
+
 - **GitHub Pages** — push the folder to a GitHub repo, enable Pages in settings
 - **Netlify** — drag and drop the folder at netlify.com/drop
 - **Vercel** — `vercel deploy` from the folder
@@ -222,14 +241,13 @@ When deploying, remember that localStorage is browser-specific. For shared real-
 
 ## Quick Reference — localStorage Keys
 
-| Key | Contains |
-|---|---|
-| `cog_prayers` | Array of prayer request objects |
-| `cog_sermons` | Array of sermon objects |
-| `cog_announcements` | Array of announcement objects |
-| `cog_home_cards` | Array of 3 home card objects |
+| Key                 | Contains                            |
+| ------------------- | ----------------------------------- |
+| `cog_prayers`       | Array of prayer request objects     |
+| `cog_sermons`       | Array of sermon objects             |
+| `cog_announcements` | Array of announcement objects       |
+| `cog_home_cards`    | Array of 3 home card objects        |
 | `cog_registrations` | Array of worker application objects |
-
 
 ## Device IDs & access levels
 
@@ -249,3 +267,5 @@ When deploying, remember that localStorage is browser-specific. For shared real-
 - Workers and members can scan from inside the site: **Scan Attendance** (`scan.html`) is linked from the home screen, the Members' Portal and the Workers' Portal. It opens the camera, reads the usher's QR, and forwards to `checkin.html`. Scanning with the phone's own camera app works too.
 - Admin → Attendance is visible only to Super Admins and the head of the department whose name contains "Usher".
 - Firestore: the `settings` collection holds `attendanceSession` ({open, date, code, prev}); it must be readable and writable like the other settings.
+
+k
